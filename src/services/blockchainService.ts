@@ -1,6 +1,6 @@
-import { ethers } from 'ethers';
-import axios from 'axios';
-import HealthcareABI from '../contracts/Healthcare.json';
+import { ethers } from "ethers";
+import axios from "axios";
+import HealthcareABI from "../contracts/Healthcare.json";
 
 export class BlockchainService {
   private provider: ethers.BrowserProvider;
@@ -11,18 +11,18 @@ export class BlockchainService {
 
   constructor() {
     // Check if window.ethereum exists
-    if (typeof window.ethereum === 'undefined') {
-      throw new Error('Please install MetaMask to use this application');
+    if (typeof window.ethereum === "undefined") {
+      throw new Error("Please install MetaMask to use this application");
     }
 
     // Initialize provider and contract
     this.provider = new ethers.BrowserProvider(window.ethereum);
-    
+
     // Use Vite's environment variables
     const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS;
-    
+
     if (!contractAddress) {
-      throw new Error('Contract address not found in environment variables');
+      throw new Error("Contract address not found in environment variables");
     }
 
     this.contract = new ethers.Contract(
@@ -30,7 +30,12 @@ export class BlockchainService {
       HealthcareABI.abi,
       this.provider
     ) as unknown as ethers.Contract & {
-      registerUser: (name: string, role: string, ipfsHash: string, options?: { value: bigint }) => Promise<ethers.ContractTransactionResponse>;
+      registerUser: (
+        name: string,
+        role: string,
+        ipfsHash: string,
+        options?: { value: bigint }
+      ) => Promise<ethers.ContractTransactionResponse>;
       getUserDetails: (address: string) => Promise<any>;
       getAllDoctors: () => Promise<string[]>;
     };
@@ -43,12 +48,12 @@ export class BlockchainService {
   async connectWallet() {
     try {
       // Request account access
-      const accounts = await window.ethereum.request({ 
-        method: "eth_requestAccounts" 
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
       });
       return accounts[0];
     } catch (error) {
-      console.error('Error connecting wallet:', error);
+      console.error("Error connecting wallet:", error);
       throw error;
     }
   }
@@ -66,7 +71,7 @@ export class BlockchainService {
       await tx.wait();
       return tx.hash;
     } catch (error) {
-      console.error('Error registering user:', error);
+      console.error("Error registering user:", error);
       throw error;
     }
   }
@@ -74,16 +79,16 @@ export class BlockchainService {
   async uploadToPinata(data: any): Promise<string> {
     try {
       const jsonString = JSON.stringify(data);
-      const jsonFile = new Blob([jsonString], { type: 'application/json' });
+      const jsonFile = new Blob([jsonString], { type: "application/json" });
       const formData = new FormData();
-      formData.append('file', jsonFile);
+      formData.append("file", jsonFile);
 
       const response = await axios.post(
-        'https://api.pinata.cloud/pinning/pinFileToIPFS',
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
             pinata_api_key: this.pinataApiKey,
             pinata_secret_api_key: this.pinataSecretKey,
           },
@@ -92,7 +97,7 @@ export class BlockchainService {
 
       return `ipfs://${response.data.IpfsHash}`;
     } catch (error) {
-      console.error('Error uploading to Pinata:', error);
+      console.error("Error uploading to Pinata:", error);
       throw error;
     }
   }
@@ -101,32 +106,32 @@ export class BlockchainService {
     try {
       // Create a more detailed FormData
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append("file", file);
 
       // Add metadata
       const metadata = JSON.stringify({
         name: `profile-${Date.now()}`,
         keyvalues: {
-          type: 'profile-image'
-        }
+          type: "profile-image",
+        },
       });
-      formData.append('pinataMetadata', metadata);
+      formData.append("pinataMetadata", metadata);
 
       // Add options
       const options = JSON.stringify({
-        cidVersion: 0
+        cidVersion: 0,
       });
-      formData.append('pinataOptions', options);
+      formData.append("pinataOptions", options);
 
       const response = await axios.post(
-        'https://api.pinata.cloud/pinning/pinFileToIPFS',
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
         formData,
         {
           maxBodyLength: Infinity, // Required for large files
           headers: {
-            'Content-Type': `multipart/form-data; boundary=${formData._boundary}`,
-            'pinata_api_key': this.pinataApiKey,
-            'pinata_secret_api_key': this.pinataSecretKey
+            "Content-Type": `multipart/form-data; boundary=${formData._boundary}`,
+            pinata_api_key: this.pinataApiKey,
+            pinata_secret_api_key: this.pinataSecretKey,
           },
         }
       );
@@ -134,11 +139,119 @@ export class BlockchainService {
       if (response.data.IpfsHash) {
         return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
       } else {
-        throw new Error('No IPFS hash received from Pinata');
+        throw new Error("No IPFS hash received from Pinata");
       }
     } catch (error: any) {
-      console.error('Error uploading profile image to Pinata:', error.response?.data || error.message);
+      console.error(
+        "Error uploading profile image to Pinata:",
+        error.response?.data || error.message
+      );
       throw error;
+    }
+  }
+
+  async uploadDocumentToPinata(
+    file: File,
+    metadata?: {
+      patientId?: string;
+      doctorId?: string;
+      documentType?: string;
+    }
+  ): Promise<{
+    success: boolean;
+    hash?: string;
+    url?: string;
+    name?: string;
+    size?: string;
+    format?: string;
+    error?: string;
+  }> {
+    try {
+      // Create FormData
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Add metadata
+      const metadataObj = {
+        name: `medical-doc-${Date.now()}`,
+        keyvalues: {
+          type: "medical-document",
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          ...metadata,
+        },
+      };
+      formData.append("pinataMetadata", JSON.stringify(metadataObj));
+
+      // Add options
+      const options = JSON.stringify({
+        cidVersion: 0,
+      });
+      formData.append("pinataOptions", options);
+
+      const response = await axios.post(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        formData,
+        {
+          maxBodyLength: Infinity, // Required for large files
+          headers: {
+            "Content-Type": `multipart/form-data; boundary=${formData._boundary}`,
+            pinata_api_key: this.pinataApiKey,
+            pinata_secret_api_key: this.pinataSecretKey,
+          },
+        }
+      );
+
+      if (response.data.IpfsHash) {
+        // Format file size for display
+        const formatFileSize = (bytes: number): string => {
+          if (bytes < 1024) return bytes + " B";
+          else if (bytes < 1024 * 1024)
+            return (bytes / 1024).toFixed(1) + " KB";
+          else if (bytes < 1024 * 1024 * 1024)
+            return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+          else return (bytes / (1024 * 1024 * 1024)).toFixed(1) + " GB";
+        };
+
+        // Determine document format based on file type
+        const getDocumentFormat = (
+          fileType: string
+        ): "pdf" | "image" | "spreadsheet" | "document" => {
+          if (fileType.includes("pdf")) return "pdf";
+          else if (fileType.includes("image")) return "image";
+          else if (
+            fileType.includes("excel") ||
+            fileType.includes("spreadsheet") ||
+            fileType.includes("csv")
+          )
+            return "spreadsheet";
+          else return "document";
+        };
+
+        return {
+          success: true,
+          hash: response.data.IpfsHash,
+          url: `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`,
+          name: file.name,
+          size: formatFileSize(file.size),
+          format: getDocumentFormat(file.type),
+        };
+      } else {
+        throw new Error("No IPFS hash received from Pinata");
+      }
+    } catch (error: any) {
+      console.error(
+        "Error uploading document to Pinata:",
+        error.response?.data || error.message
+      );
+      return {
+        success: false,
+        error:
+          error.response?.data?.error ||
+          error.message ||
+          "Failed to upload document",
+      };
     }
   }
 
@@ -151,9 +264,11 @@ export class BlockchainService {
   }) {
     try {
       // Upload profile image if exists
-      let profileImageUrl = '';
+      let profileImageUrl = "";
       if (patientData.profileImage) {
-        profileImageUrl = await this.uploadProfileImageToPinata(patientData.profileImage);
+        profileImageUrl = await this.uploadProfileImageToPinata(
+          patientData.profileImage
+        );
       }
 
       // Upload patient data to IPFS
@@ -180,7 +295,7 @@ export class BlockchainService {
       await tx.wait();
       return true;
     } catch (error) {
-      console.error('Error registering patient:', error);
+      console.error("Error registering patient:", error);
       throw error;
     }
   }
@@ -199,9 +314,11 @@ export class BlockchainService {
   }) {
     try {
       // Upload profile image if exists
-      let profileImageUrl = '';
+      let profileImageUrl = "";
       if (doctorData.profileImage) {
-        profileImageUrl = await this.uploadProfileImageToPinata(doctorData.profileImage);
+        profileImageUrl = await this.uploadProfileImageToPinata(
+          doctorData.profileImage
+        );
       }
 
       // Upload doctor data to IPFS
@@ -233,7 +350,7 @@ export class BlockchainService {
       await tx.wait();
       return true;
     } catch (error) {
-      console.error('Error registering doctor:', error);
+      console.error("Error registering doctor:", error);
       throw error;
     }
   }
@@ -243,15 +360,15 @@ export class BlockchainService {
       const signer = await this.provider.getSigner();
       const address = await signer.getAddress();
       console.log("Connected wallet address:", address);
-      
+
       // Try to call a view function from the contract
       const isRegistered = await this.contract.users(address);
       console.log("User registration status:", isRegistered);
-      
+
       return {
         success: true,
         walletAddress: address,
-        contractAddress: this.contract.target
+        contractAddress: this.contract.target,
       };
     } catch (error) {
       console.error("Contract verification error:", error);
@@ -263,25 +380,28 @@ export class BlockchainService {
     try {
       const signer = await this.provider.getSigner();
       const contractWithSigner = this.contract.connect(signer);
-      
+
       // Get user details from blockchain
       const userDetails = await contractWithSigner.getUserDetails(address);
-      
+
       // If user exists and has IPFS hash
       if (userDetails && userDetails.ipfsHash) {
         // Convert IPFS hash to HTTP URL
-        const ipfsUrl = userDetails.ipfsHash.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
-        
+        const ipfsUrl = userDetails.ipfsHash.replace(
+          "ipfs://",
+          "https://gateway.pinata.cloud/ipfs/"
+        );
+
         // Fetch user data from IPFS
         const response = await axios.get(ipfsUrl);
         return {
           ...response.data,
-          role: userDetails.role
+          role: userDetails.role,
         };
       }
       return null;
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error("Error fetching user data:", error);
       throw error;
     }
   }
@@ -299,20 +419,20 @@ export class BlockchainService {
     try {
       const signer = await this.provider.getSigner();
       const contractWithSigner = this.contract.connect(signer);
-      
+
       // Get user details from blockchain
       const userDetails = await contractWithSigner.getUserDetails(address);
-      console.log('User details from blockchain:', userDetails);
-      
+      console.log("User details from blockchain:", userDetails);
+
       return {
         isRegistered: userDetails.isRegistered,
-        details: userDetails
+        details: userDetails,
       };
     } catch (error: any) {
-      console.error('Error verifying user registration:', error);
+      console.error("Error verifying user registration:", error);
       return {
         isRegistered: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
@@ -320,14 +440,14 @@ export class BlockchainService {
   async disconnectWallet() {
     try {
       // Clear any stored wallet state
-      localStorage.removeItem('walletState');
-      
+      localStorage.removeItem("walletState");
+
       // Reset provider state
       this.provider = new ethers.BrowserProvider(window.ethereum);
-      
+
       return true;
     } catch (error) {
-      console.error('Error disconnecting wallet:', error);
+      console.error("Error disconnecting wallet:", error);
       throw error;
     }
   }
@@ -337,17 +457,25 @@ export class BlockchainService {
     try {
       const signer = await this.provider.getSigner();
       const contractWithSigner = this.contract.connect(signer);
-      
+
       // Get all doctor addresses from the contract
-      const doctorAddresses: string[] = await contractWithSigner.getAllDoctors();
+      const doctorAddresses: string[] =
+        await contractWithSigner.getAllDoctors();
       const doctors: any[] = [];
-      
+
       for (const address of doctorAddresses) {
         const userDetails = await contractWithSigner.getUserDetails(address);
-        if (userDetails && userDetails.isRegistered && userDetails.role === 'doctor') {
+        if (
+          userDetails &&
+          userDetails.isRegistered &&
+          userDetails.role === "doctor"
+        ) {
           let ipfsData = {};
           if (userDetails.ipfsHash) {
-            const ipfsUrl = userDetails.ipfsHash.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+            const ipfsUrl = userDetails.ipfsHash.replace(
+              "ipfs://",
+              "https://gateway.pinata.cloud/ipfs/"
+            );
             try {
               const response = await axios.get(ipfsUrl);
               ipfsData = response.data;
@@ -358,14 +486,14 @@ export class BlockchainService {
           doctors.push({
             address,
             ...userDetails,
-            ...ipfsData
+            ...ipfsData,
           });
         }
       }
       return doctors;
     } catch (error) {
-      console.error('Error fetching all doctors:', error);
+      console.error("Error fetching all doctors:", error);
       throw error;
     }
   }
-} 
+}

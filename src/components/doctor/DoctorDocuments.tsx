@@ -1,21 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
-  Search, 
-  Filter, 
-  FileText, 
-  FilePlus, 
-  Folder, 
-  Star, 
-  Download, 
-  Share2, 
+import {
+  Search,
+  Filter,
+  FileText,
+  FilePlus,
+  Folder,
+  Star,
+  Download,
+  Share2,
   MoreHorizontal,
   Image,
   FileSpreadsheet,
   Mail,
-  ChevronLeft
+  ChevronLeft,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,8 +24,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+
 import { useToast } from "@/components/ui/use-toast";
+import { BlockchainService } from "@/services/blockchainService";
 
 interface Document {
   id: string;
@@ -45,17 +47,19 @@ const DoctorDocuments: React.FC = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPath, setCurrentPath] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  
+  const [viewMode] = useState<"grid" | "list">("grid");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Sample documents data with nested structure
-  const [documents] = useState<Document[]>([
+  const [documents, setDocuments] = useState<Document[]>([
     {
       id: "patients",
       name: "Patients",
       type: "folder",
       lastModified: "2023-04-15",
       starred: true,
-      path: []
+      path: [],
     },
     {
       id: "research",
@@ -63,7 +67,7 @@ const DoctorDocuments: React.FC = () => {
       type: "folder",
       lastModified: "2023-04-10",
       starred: false,
-      path: []
+      path: [],
     },
     {
       id: "conference",
@@ -71,7 +75,7 @@ const DoctorDocuments: React.FC = () => {
       type: "folder",
       lastModified: "2023-03-22",
       starred: false,
-      path: []
+      path: [],
     },
     // Patient Records
     {
@@ -81,7 +85,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-12",
       starred: true,
       path: ["patients"],
-      patientId: "P001"
+      patientId: "P001",
     },
     {
       id: "patient2",
@@ -90,7 +94,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-10",
       starred: false,
       path: ["patients"],
-      patientId: "P002"
+      patientId: "P002",
     },
     {
       id: "patient3",
@@ -99,7 +103,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-08",
       starred: false,
       path: ["patients"],
-      patientId: "P003"
+      patientId: "P003",
     },
     // Patient 1 Documents
     {
@@ -111,7 +115,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-08",
       starred: false,
       path: ["patients", "patient1"],
-      content: "/public/patients/p1_mri.jpg"
+      content: "/public/patients/p1_mri.jpg",
     },
     {
       id: "p1_lab",
@@ -122,7 +126,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-05",
       starred: true,
       path: ["patients", "patient1"],
-      content: "/public/patients/p1_lab.pdf"
+      content: "/public/patients/p1_lab.pdf",
     },
     {
       id: "p1_prescription",
@@ -133,7 +137,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-03",
       starred: false,
       path: ["patients", "patient1"],
-      content: "/public/patients/p1_prescription.docx"
+      content: "/public/patients/p1_prescription.docx",
     },
     // Patient 2 Documents
     {
@@ -145,7 +149,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-09",
       starred: false,
       path: ["patients", "patient2"],
-      content: "/public/patients/p2_xray.jpg"
+      content: "/public/patients/p2_xray.jpg",
     },
     {
       id: "p2_ecg",
@@ -156,7 +160,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-07",
       starred: true,
       path: ["patients", "patient2"],
-      content: "/public/patients/p2_ecg.pdf"
+      content: "/public/patients/p2_ecg.pdf",
     },
     // Research Papers
     {
@@ -168,7 +172,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-04-12",
       starred: true,
       path: ["research"],
-      content: "/public/research/cardiology_study.pdf"
+      content: "/public/research/cardiology_study.pdf",
     },
     {
       id: "research2",
@@ -179,7 +183,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-03-30",
       starred: false,
       path: ["research"],
-      content: "/public/research/trials_data.xlsx"
+      content: "/public/research/trials_data.xlsx",
     },
     // Conference Materials
     {
@@ -191,7 +195,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-03-20",
       starred: false,
       path: ["conference"],
-      content: "/public/conference/presentation.pptx"
+      content: "/public/conference/presentation.pptx",
     },
     {
       id: "conf2",
@@ -202,7 +206,7 @@ const DoctorDocuments: React.FC = () => {
       lastModified: "2023-03-18",
       starred: true,
       path: ["conference"],
-      content: "/public/conference/schedule.docx"
+      content: "/public/conference/schedule.docx",
     },
     // Emails
     {
@@ -214,7 +218,7 @@ const DoctorDocuments: React.FC = () => {
       subject: "Your registration for Annual Medical Conference",
       lastModified: "2023-04-14",
       starred: false,
-      path: []
+      path: [],
     },
     {
       id: "email2",
@@ -225,20 +229,21 @@ const DoctorDocuments: React.FC = () => {
       subject: "Lab results for patient #12345",
       lastModified: "2023-04-13",
       starred: true,
-      path: []
-    }
+      path: [],
+    },
   ]);
-  
+
   // Filter documents based on search term and current path
   const filteredDocuments = documents.filter(
-    (doc) =>
+    (doc: Document) =>
       doc.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
       JSON.stringify(doc.path) === JSON.stringify(currentPath)
   );
-  
+
   const getDocumentIcon = (doc: Document) => {
-    if (doc.type === "folder") return <Folder className="h-10 w-10 text-indigo-600" />;
-    
+    if (doc.type === "folder")
+      return <Folder className="h-10 w-10 text-indigo-600" />;
+
     switch (doc.format) {
       case "pdf":
         return <FileText className="h-10 w-10 text-red-500" />;
@@ -252,7 +257,7 @@ const DoctorDocuments: React.FC = () => {
         return <FileText className="h-10 w-10 text-gray-500" />;
     }
   };
-  
+
   const handleDocumentClick = (doc: Document) => {
     if (doc.type === "folder") {
       setCurrentPath([...currentPath, doc.id]);
@@ -281,10 +286,82 @@ const DoctorDocuments: React.FC = () => {
 
   const toggleStar = (id: string) => {
     // In a real app, this would update the database
+    // Find the document by id and toggle its starred status
+    const updatedDocs = documents.map((doc: Document) =>
+      doc.id === id ? { ...doc, starred: !doc.starred } : doc
+    );
+    setDocuments(updatedDocs);
+
     toast({
       title: "Starred Status Changed",
-      description: "Document star status has been updated.",
+      description: `Document ${id} star status has been updated.`,
     });
+  };
+
+  const handleUploadClick = () => {
+    // Trigger the hidden file input
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+
+      // Create a new instance of BlockchainService
+      const blockchainService = new BlockchainService();
+
+      // Upload the file to IPFS via Pinata
+      const result = await blockchainService.uploadDocumentToPinata(file, {
+        doctorId: "current-doctor-id", // In a real app, get this from auth context
+        documentType: file.type,
+      });
+
+      if (result.success && result.hash && result.url) {
+        // Generate a unique ID for the document
+        const newDocId = `doc_${Date.now()}`;
+
+        // Create a new document object
+        const newDocument: Document = {
+          id: newDocId,
+          name: result.name || file.name,
+          type: "file",
+          format: result.format as "pdf" | "image" | "spreadsheet" | "document",
+          size: result.size || `${Math.round(file.size / 1024)} KB`,
+          lastModified: new Date().toISOString(),
+          starred: false,
+          path: [...currentPath],
+          content: result.url,
+        };
+
+        // Add the new document to the documents array
+        setDocuments([...documents, newDocument]);
+
+        toast({
+          title: "Upload Successful",
+          description: `${file.name} has been uploaded to IPFS.`,
+        });
+      } else {
+        throw new Error(result.error || "Upload failed");
+      }
+    } catch (error: any) {
+      console.error("Error uploading file:", error);
+      toast({
+        title: "Upload Failed",
+        description: error.message || "There was an error uploading your file.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+      // Reset the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   };
 
   return (
@@ -303,18 +380,20 @@ const DoctorDocuments: React.FC = () => {
               </Button>
             )}
             <CardTitle className="text-base font-medium">
-              {currentPath.length > 0 ? currentPath[currentPath.length - 1] : "Documents & Email"}
+              {currentPath.length > 0
+                ? currentPath[currentPath.length - 1]
+                : "Documents & Email"}
             </CardTitle>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setCurrentPath([])}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPath([])}
+            >
               All Files
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="bg-indigo-50"
-            >
+            <Button variant="outline" size="sm" className="bg-indigo-50">
               <Star className="h-4 w-4 mr-2" /> Starred
             </Button>
           </div>
@@ -328,59 +407,86 @@ const DoctorDocuments: React.FC = () => {
               placeholder="Search documents and emails..."
               className="pl-9"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setSearchTerm(e.target.value)
+              }
             />
           </div>
           <Button variant="outline" size="icon">
             <Filter className="h-4 w-4" />
           </Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700">
-            <FilePlus className="h-4 w-4 mr-2" /> Upload
+          <Button
+            className="bg-indigo-600 hover:bg-indigo-700"
+            onClick={handleUploadClick}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Uploading...
+              </>
+            ) : (
+              <>
+                <FilePlus className="h-4 w-4 mr-2" /> Upload
+              </>
+            )}
           </Button>
+          {/* Hidden file input */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv"
+          />
         </div>
-        
+
         {viewMode === "grid" ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredDocuments.map((doc) => (
-              <div 
+            {filteredDocuments.map((doc: Document) => (
+              <div
                 key={doc.id}
                 className="bg-white border rounded-md p-3 flex flex-col hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => handleDocumentClick(doc)}
               >
                 <div className="flex justify-between items-start mb-3">
-                  <div className="flex-shrink-0">
-                    {getDocumentIcon(doc)}
-                  </div>
+                  <div className="flex-shrink-0">{getDocumentIcon(doc)}</div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={(e) => {
+                    onClick={(e: React.MouseEvent) => {
                       e.stopPropagation();
                       toggleStar(doc.id);
                     }}
                   >
-                    <Star className={`h-4 w-4 ${doc.starred ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                    <Star
+                      className={`h-4 w-4 ${
+                        doc.starred ? "fill-yellow-400 text-yellow-400" : ""
+                      }`}
+                    />
                   </Button>
                 </div>
-                
-                <h3 className="font-medium truncate mb-1" title={doc.name}>{doc.name}</h3>
-                
+
+                <h3 className="font-medium truncate mb-1" title={doc.name}>
+                  {doc.name}
+                </h3>
+
                 {doc.type === "email" && (
-                  <p className="text-xs text-gray-500 truncate mb-1" title={doc.from}>
+                  <p
+                    className="text-xs text-gray-500 truncate mb-1"
+                    title={doc.from}
+                  >
                     From: {doc.from}
                   </p>
                 )}
-                
+
                 <div className="flex justify-between mt-auto pt-2">
                   <p className="text-xs text-gray-500">
-                    {doc.type === "email" ? (
-                      "Email"
-                    ) : doc.type === "folder" ? (
-                      "Folder"
-                    ) : (
-                      doc.size
-                    )}
+                    {doc.type === "email"
+                      ? "Email"
+                      : doc.type === "folder"
+                      ? "Folder"
+                      : doc.size}
                   </p>
                   <p className="text-xs text-gray-500">
                     {new Date(doc.lastModified).toLocaleDateString()}
@@ -402,8 +508,8 @@ const DoctorDocuments: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredDocuments.map((doc) => (
-                  <tr 
+                {filteredDocuments.map((doc: Document) => (
+                  <tr
                     key={doc.id}
                     className="hover:bg-gray-50 cursor-pointer"
                     onClick={() => handleDocumentClick(doc)}
@@ -416,21 +522,29 @@ const DoctorDocuments: React.FC = () => {
                         <div>
                           <p className="font-medium">{doc.name}</p>
                           {doc.type === "email" && (
-                            <p className="text-xs text-gray-500">{doc.subject}</p>
+                            <p className="text-xs text-gray-500">
+                              {doc.subject}
+                            </p>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="p-3">
-                      <Badge variant="outline">
-                        {doc.type === "email" ? "Email" : doc.type === "folder" ? "Folder" : doc.format}
-                      </Badge>
+                      <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
+                        {doc.type === "email"
+                          ? "Email"
+                          : doc.type === "folder"
+                          ? "Folder"
+                          : doc.format}
+                      </div>
                     </td>
                     <td className="p-3">
                       <span className="text-gray-500">{doc.size || "-"}</span>
                     </td>
                     <td className="p-3">
-                      <span className="text-gray-500">{new Date(doc.lastModified).toLocaleDateString()}</span>
+                      <span className="text-gray-500">
+                        {new Date(doc.lastModified).toLocaleDateString()}
+                      </span>
                     </td>
                     <td className="p-3 text-right">
                       <div className="flex justify-end items-center gap-2">
@@ -438,17 +552,32 @@ const DoctorDocuments: React.FC = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             toggleStar(doc.id);
                           }}
                         >
-                          <Star className={`h-4 w-4 ${doc.starred ? "fill-yellow-400 text-yellow-400" : ""}`} />
+                          <Star
+                            className={`h-4 w-4 ${
+                              doc.starred
+                                ? "fill-yellow-400 text-yellow-400"
+                                : ""
+                            }`}
+                          />
                         </Button>
-                        
+
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <DropdownMenuTrigger
+                            asChild
+                            onClick={(e: React.MouseEvent) =>
+                              e.stopPropagation()
+                            }
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -467,10 +596,12 @@ const DoctorDocuments: React.FC = () => {
                 ))}
               </tbody>
             </table>
-            
+
             {filteredDocuments.length === 0 && (
               <div className="py-10 text-center">
-                <p className="text-gray-500">No documents found matching "{searchTerm}"</p>
+                <p className="text-gray-500">
+                  No documents found matching "{searchTerm}"
+                </p>
               </div>
             )}
           </div>
