@@ -410,10 +410,50 @@ export const mockPatients: Patient[] = [
   },
 ];
 
-// Function to add a new patient to the mock data
+// Function to add a new patient to the mock data or update existing one
 export const addNewPatient = (patient: Patient) => {
-  mockPatients.push(patient);
-  return patient;
+  // Check if patient with this ID already exists
+  const existingIndex = mockPatients.findIndex((p) => p.id === patient.id);
+
+  if (existingIndex >= 0) {
+    // Update existing patient
+    console.log(`Updating existing patient: ${patient.name} (${patient.id})`);
+    mockPatients[existingIndex] = {
+      ...patient,
+      // Preserve any appointments or medical history that might exist
+      appointments: [
+        ...(mockPatients[existingIndex].appointments || []),
+        ...(patient.appointments || []),
+      ],
+      recentAppointments: [
+        ...(mockPatients[existingIndex].recentAppointments || []),
+        ...(patient.recentAppointments || []),
+      ],
+      medicalHistory: [
+        ...(mockPatients[existingIndex].medicalHistory || []),
+        ...(patient.medicalHistory || []),
+      ],
+      allergies: [
+        ...(mockPatients[existingIndex].allergies || []),
+        ...(patient.allergies || []),
+      ],
+      vaccinations: [
+        ...(mockPatients[existingIndex].vaccinations || []),
+        ...(patient.vaccinations || []),
+      ],
+      // Update last login time
+      lastLogin: new Date().toISOString(),
+    };
+    return mockPatients[existingIndex];
+  } else {
+    // Add new patient
+    console.log(`Adding new patient: ${patient.name} (${patient.id})`);
+    mockPatients.push({
+      ...patient,
+      lastLogin: new Date().toISOString(),
+    });
+    return patient;
+  }
 };
 
 // Function to get a patient by ID

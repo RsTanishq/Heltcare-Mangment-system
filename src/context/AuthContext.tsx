@@ -70,13 +70,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                   method: "eth_accounts",
                 });
 
-                // If wallet is disconnected but we have a saved session with wallet
+                // If wallet is disconnected or address doesn't match, clear the session
                 if (
-                  (!accounts || accounts.length === 0) &&
-                  parsedUser.data.walletAddress
+                  !accounts ||
+                  accounts.length === 0 ||
+                  (accounts &&
+                    accounts.length > 0 &&
+                    accounts[0].toLowerCase() !==
+                      parsedUser.data.walletAddress?.toLowerCase())
                 ) {
-                  console.warn("Wallet disconnected but session exists");
-                  // We'll keep the session for now, but could handle this differently
+                  console.warn(
+                    "Wallet disconnected or address mismatch - clearing session"
+                  );
+                  localStorage.removeItem("currentUser");
+                  setCurrentUser({ type: null, data: null });
+                  return; // Exit early
                 }
               } catch (error) {
                 console.error("Error checking wallet connection:", error);
@@ -278,13 +286,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             lastLogin: new Date().toISOString(),
           };
 
-          // Add the patient to mockPatients if not already there
-          const existingPatient = mockPatients.find(
+          // Always update the patient data in mockPatients to ensure fresh data
+          // First remove any existing patient with this ID
+          const existingPatientIndex = mockPatients.findIndex(
             (p) => p.id === patientData.id
           );
-          if (!existingPatient) {
-            addNewPatient(patientData);
+
+          if (existingPatientIndex >= 0) {
+            console.log(
+              "Updating existing patient data for:",
+              patientData.name
+            );
+            // Remove the existing patient
+            mockPatients.splice(existingPatientIndex, 1);
           }
+
+          // Add the patient with fresh data
+          console.log(
+            "Adding/updating patient in mockPatients:",
+            patientData.name
+          );
+          addNewPatient(patientData);
 
           userDataWithName = patientData;
         } else {
@@ -410,6 +432,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = async () => {
     try {
+      // Get current user type before clearing
+      const userType = currentUser?.type;
+      const userId = currentUser?.data?.id;
+
       // Clear user data from context
       setCurrentUser({ type: null, data: null });
 
@@ -424,21 +450,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const appointmentStore = useAppointmentStore.getState();
       appointmentStore.clearAppointments();
 
+      // If the user was a patient, remove them from mockPatients to ensure fresh data on next login
+      if (userType === "patient" && userId) {
+        console.log("Removing patient data for:", userId);
+        const patientIndex = mockPatients.findIndex((p) => p.id === userId);
+        if (patientIndex >= 0) {
+          mockPatients.splice(patientIndex, 1);
+        }
+      }
+
       // If using blockchain service, disconnect wallet
       if (window.ethereum) {
         try {
           const blockchainService = new BlockchainService();
           await blockchainService.disconnectWallet();
+
+          // Force disconnect by clearing any MetaMask cached connections
+          if (window.ethereum.disconnect) {
+            await window.ethereum.disconnect();
+          }
         } catch (error) {
           console.error("Error disconnecting wallet:", error);
         }
       }
 
       // Clear mock data for the next session
-      // This will reset any appointments or other data that might be persisting
       if (typeof window !== "undefined") {
         // Reset any mock data that might be stored in window object
         (window as any).mockDataReset = true;
+
+        // Force a page reload to clear any in-memory state
+        window.location.href = "/"; // Redirect to root which is the login page
       }
 
       console.log("User logged out successfully and all data cleared");

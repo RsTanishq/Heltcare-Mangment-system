@@ -491,11 +491,30 @@ export class BlockchainService {
 
   async disconnectWallet() {
     try {
-      // Clear any stored wallet state
+      // Clear all wallet-related data
       localStorage.removeItem("walletState");
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("rememberedCredentials");
+      localStorage.removeItem("doctorActiveTab");
+      localStorage.removeItem("doctorMedications");
+      localStorage.removeItem("doctorPatients");
+
+      // Clear any IPFS cache that might be stored
+      const ipfsCacheKeys = Object.keys(localStorage).filter(
+        (key) => key.startsWith("ipfs-") || key.includes("ipfs")
+      );
+
+      ipfsCacheKeys.forEach((key) => {
+        localStorage.removeItem(key);
+      });
 
       // Reset provider state
       this.provider = new ethers.BrowserProvider(window.ethereum);
+
+      // Force page reload to clear any in-memory state
+      if (typeof window !== "undefined") {
+        window.location.href = "/"; // Redirect to root which is the login page
+      }
 
       return true;
     } catch (error) {
