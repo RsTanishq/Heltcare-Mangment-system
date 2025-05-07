@@ -189,8 +189,79 @@ const DoctorMedications: React.FC = () => {
 
   // Initialize patients from localStorage or use default
   const [patients, setPatients] = useState<Patient[]>(() => {
-    // Force refresh with the latest mockPatients data
-    localStorage.removeItem("doctorPatients");
+    // Try to get patients from localStorage first
+    try {
+      const savedPatients = localStorage.getItem("savedPatients");
+      if (savedPatients) {
+        // If we have saved patients, use them to create medication data
+        const parsedPatients = JSON.parse(savedPatients);
+        console.log(
+          `Using ${parsedPatients.length} patients from localStorage for medications`
+        );
+
+        // Map the saved patients to the simplified Patient interface for medications
+        return parsedPatients.map((patient: any) => {
+          // Create medication data based on patient's medical conditions
+          const patientMedications = [];
+
+          // Add medications based on patient's medical history
+          if (patient.medicalHistory && patient.medicalHistory.length > 0) {
+            patient.medicalHistory.forEach((condition: any) => {
+              // Map condition to a medication ID (same logic as in defaultPatients)
+              let medicationId = "med1"; // Default to Amoxicillin
+
+              if (condition.condition.toLowerCase().includes("diabetes")) {
+                medicationId = "med5"; // Metformin
+              } else if (
+                condition.condition.toLowerCase().includes("hypertension")
+              ) {
+                medicationId = "med3"; // Lisinopril
+              } else if (condition.condition.toLowerCase().includes("pain")) {
+                medicationId = "med2"; // Ibuprofen
+              } else if (
+                condition.condition.toLowerCase().includes("migraine")
+              ) {
+                medicationId = "med2"; // Ibuprofen
+              } else if (condition.condition.toLowerCase().includes("asthma")) {
+                medicationId = "med1"; // Amoxicillin (not ideal but for demo)
+              }
+
+              patientMedications.push({
+                medicationId,
+                prescribed:
+                  patient.lastVisit || new Date().toISOString().split("T")[0],
+                notes:
+                  condition.notes ||
+                  `Take as prescribed for ${condition.condition}. Follow up in 30 days.`,
+              });
+            });
+          }
+
+          // If no medications were added, add a default one
+          if (patientMedications.length === 0) {
+            patientMedications.push({
+              medicationId: "med1",
+              prescribed:
+                patient.lastVisit || new Date().toISOString().split("T")[0],
+              notes: "General prescription. Take as directed.",
+            });
+          }
+
+          return {
+            id: patient.id,
+            name: patient.name,
+            email: patient.email,
+            profileImage: patient.profileImage || "/placeholder.svg",
+            medications: patientMedications,
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error loading patients for medications:", error);
+    }
+
+    // If no saved patients or error, use default patients
+    console.log("Using default patients for medications");
     return defaultPatients;
   });
 
@@ -201,7 +272,11 @@ const DoctorMedications: React.FC = () => {
 
   // Save patients to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("doctorPatients", JSON.stringify(patients));
+    // We now use the 'savedPatients' key for consistency across the application
+    localStorage.setItem("savedPatients", JSON.stringify(patients));
+    console.log(
+      `Saved ${patients.length} patients from medications component to localStorage`
+    );
   }, [patients]);
 
   // Filter medications based on search term

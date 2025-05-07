@@ -40,16 +40,14 @@ const DoctorPatientsList: React.FC = () => {
       const latestPatients = getAllPatients();
       console.log("Latest patients in DoctorPatientsList:", latestPatients);
 
-      // Check if any patient names have changed
-      const hasNameChanges = latestPatients.some((patient, index) => {
-        return patients[index]?.name !== patient.name;
-      });
-
-      // Update the patient list if there are changes
-      if (hasNameChanges || latestPatients.length !== patients.length) {
-        console.log("Patient list updated, refreshing...");
-        setPatients(latestPatients);
-      }
+      // Always update the patient list to ensure we have the latest data
+      // This is important for new patients that are added via wallet login
+      setPatients(latestPatients);
+      console.log(
+        "Patient list refreshed with",
+        latestPatients.length,
+        "patients"
+      );
     };
 
     // Initial refresh
@@ -59,17 +57,33 @@ const DoctorPatientsList: React.FC = () => {
     // This ensures that new patients are displayed without requiring a page refresh
     const intervalId = setInterval(refreshPatientList, 2000);
 
-    // Clean up the interval when the component unmounts
-    return () => clearInterval(intervalId);
-  }, [patients]); // Add patients as a dependency to avoid ESLint warnings
+    // Set up a storage event listener to update when localStorage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "savedPatients") {
+        console.log(
+          "savedPatients changed in localStorage, refreshing patient list"
+        );
+        refreshPatientList();
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Clean up the interval and event listener when the component unmounts
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []); // Empty dependency array to run only on mount
 
   // Filter patients based on search term
   const filteredPatients = patients.filter(
     (patient) =>
       patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patient.medicalHistory.some((history) =>
-        history.condition.toLowerCase().includes(searchTerm.toLowerCase())
-      ) ||
+      (patient.medicalHistory &&
+        patient.medicalHistory.some((history) =>
+          history.condition.toLowerCase().includes(searchTerm.toLowerCase())
+        )) ||
       patient.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -167,7 +181,8 @@ const DoctorPatientsList: React.FC = () => {
                     <TableCell>{calculateAge(patient.dateOfBirth)}</TableCell>
                     <TableCell>{patient.gender}</TableCell>
                     <TableCell>
-                      {patient.medicalHistory.length > 0
+                      {patient.medicalHistory &&
+                      patient.medicalHistory.length > 0
                         ? patient.medicalHistory[0].condition
                         : "No diagnosis"}
                     </TableCell>
@@ -268,31 +283,39 @@ const DoctorPatientsList: React.FC = () => {
               <div>
                 <h3 className="font-semibold mb-2">Medical History</h3>
                 <div className="space-y-4">
-                  {selectedPatient.medicalHistory.map((history, index) => (
-                    <div key={index} className="bg-gray-50 p-3 rounded-lg">
-                      <p className="font-medium">{history.condition}</p>
-                      <p className="text-sm text-gray-600">
-                        Diagnosed: {history.diagnosedDate}
-                      </p>
-                      {history.medications && (
-                        <p className="text-sm">
-                          Medications: {history.medications.join(", ")}
+                  {selectedPatient.medicalHistory &&
+                  selectedPatient.medicalHistory.length > 0 ? (
+                    selectedPatient.medicalHistory.map((history, index) => (
+                      <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                        <p className="font-medium">{history.condition}</p>
+                        <p className="text-sm text-gray-600">
+                          Diagnosed: {history.diagnosedDate}
                         </p>
-                      )}
-                      {history.notes && (
-                        <p className="text-sm text-gray-600 mt-1">
-                          {history.notes}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                        {history.medications && (
+                          <p className="text-sm">
+                            Medications: {history.medications.join(", ")}
+                          </p>
+                        )}
+                        {history.notes && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {history.notes}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">
+                      No medical history available
+                    </p>
+                  )}
                 </div>
               </div>
 
               <div>
                 <h3 className="font-semibold mb-2">Allergies</h3>
                 <div className="space-y-2">
-                  {selectedPatient.allergies.length > 0 ? (
+                  {selectedPatient.allergies &&
+                  selectedPatient.allergies.length > 0 ? (
                     selectedPatient.allergies.map((allergy, index) => (
                       <div key={index} className="flex items-center gap-2">
                         <Badge

@@ -410,6 +410,60 @@ export const mockPatients: Patient[] = [
   },
 ];
 
+// Function to save patients to localStorage
+const savePatients = (patients: Patient[]) => {
+  try {
+    localStorage.setItem("savedPatients", JSON.stringify(patients));
+    console.log(`Saved ${patients.length} patients to localStorage`);
+  } catch (error) {
+    console.error("Error saving patients to localStorage:", error);
+  }
+};
+
+// Function to load patients from localStorage
+const loadPatientsFromStorage = (): Patient[] => {
+  try {
+    const savedPatients = localStorage.getItem("savedPatients");
+    if (savedPatients) {
+      const parsedPatients = JSON.parse(savedPatients) as Patient[];
+      console.log(`Loaded ${parsedPatients.length} patients from localStorage`);
+      return parsedPatients;
+    }
+  } catch (error) {
+    console.error("Error loading patients from localStorage:", error);
+    localStorage.removeItem("savedPatients"); // Clear corrupted data
+  }
+  return [];
+};
+
+// Initialize mockPatients with data from localStorage if available
+const storedPatients = loadPatientsFromStorage();
+if (storedPatients.length > 0) {
+  // Find patients that exist in both arrays and merge them
+  const mergedPatients = [...mockPatients];
+
+  storedPatients.forEach((storedPatient) => {
+    const existingIndex = mergedPatients.findIndex(
+      (p) => p.id === storedPatient.id
+    );
+    if (existingIndex >= 0) {
+      // Update existing patient
+      mergedPatients[existingIndex] = storedPatient;
+    } else {
+      // Add new patient from storage
+      mergedPatients.push(storedPatient);
+    }
+  });
+
+  // Replace the mockPatients array with the merged one
+  mockPatients.length = 0; // Clear the array
+  mockPatients.push(...mergedPatients); // Add all merged patients
+
+  console.log(
+    `Merged patients from localStorage. Total patients: ${mockPatients.length}`
+  );
+}
+
 // Function to add a new patient to the mock data or update existing one
 export const addNewPatient = (patient: Patient) => {
   // Check if patient with this ID already exists
@@ -418,41 +472,80 @@ export const addNewPatient = (patient: Patient) => {
   if (existingIndex >= 0) {
     // Update existing patient
     console.log(`Updating existing patient: ${patient.name} (${patient.id})`);
-    mockPatients[existingIndex] = {
+
+    // Create a merged patient object
+    const mergedPatient = {
       ...patient,
       // Preserve any appointments or medical history that might exist
       appointments: [
         ...(mockPatients[existingIndex].appointments || []),
         ...(patient.appointments || []),
-      ],
+      ].filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i), // Remove duplicates
+
       recentAppointments: [
         ...(mockPatients[existingIndex].recentAppointments || []),
         ...(patient.recentAppointments || []),
-      ],
+      ].filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i), // Remove duplicates
+
       medicalHistory: [
         ...(mockPatients[existingIndex].medicalHistory || []),
         ...(patient.medicalHistory || []),
-      ],
+      ].filter(
+        (v, i, a) => a.findIndex((t) => t.condition === v.condition) === i
+      ), // Remove duplicates
+
       allergies: [
         ...(mockPatients[existingIndex].allergies || []),
         ...(patient.allergies || []),
-      ],
+      ].filter(
+        (v, i, a) => a.findIndex((t) => t.allergen === v.allergen) === i
+      ), // Remove duplicates
+
       vaccinations: [
         ...(mockPatients[existingIndex].vaccinations || []),
         ...(patient.vaccinations || []),
-      ],
+      ].filter((v, i, a) => a.findIndex((t) => t.name === v.name) === i), // Remove duplicates
+
       // Update last login time
       lastLogin: new Date().toISOString(),
     };
+
+    // Replace the existing patient with the merged one
+    mockPatients[existingIndex] = mergedPatient;
+
+    // Log the updated patient list
+    console.log(`Patient updated. Total patients: ${mockPatients.length}`);
+
+    // Save to localStorage
+    savePatients(mockPatients);
+
     return mockPatients[existingIndex];
   } else {
     // Add new patient
     console.log(`Adding new patient: ${patient.name} (${patient.id})`);
-    mockPatients.push({
+
+    // Make sure the patient has all required fields
+    const newPatient = {
       ...patient,
       lastLogin: new Date().toISOString(),
-    });
-    return patient;
+      // Ensure these arrays exist
+      appointments: patient.appointments || [],
+      recentAppointments: patient.recentAppointments || [],
+      medicalHistory: patient.medicalHistory || [],
+      allergies: patient.allergies || [],
+      vaccinations: patient.vaccinations || [],
+    };
+
+    // Add to the mockPatients array
+    mockPatients.push(newPatient);
+
+    // Log the updated patient list
+    console.log(`New patient added. Total patients: ${mockPatients.length}`);
+
+    // Save to localStorage
+    savePatients(mockPatients);
+
+    return newPatient;
   }
 };
 
@@ -463,6 +556,7 @@ export const getPatientById = (id: string): Patient | undefined => {
 
 // Function to get all patients
 export const getAllPatients = (): Patient[] => {
+  // Always return the current state of mockPatients which includes localStorage data
   return mockPatients;
 };
 

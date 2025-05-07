@@ -176,10 +176,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         };
 
         // Log the patient data before adding to mockPatients
-        console.log("Creating new patient with name:", userData.fullName);
+        console.log(
+          "Creating new patient with name:",
+          userData.fullName,
+          "and ID:",
+          newPatient.id
+        );
 
         // Add the new patient to the mockPatients array
         addNewPatient(newPatient);
+
+        // Log the current mockPatients array to verify
+        console.log(
+          "Current mockPatients array after signup:",
+          mockPatients.map((p) => ({ id: p.id, name: p.name }))
+        );
 
         newUser = newPatient;
         console.log("New patient added to doctor's directory:", newPatient);
@@ -286,27 +297,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             lastLogin: new Date().toISOString(),
           };
 
-          // Always update the patient data in mockPatients to ensure fresh data
-          // First remove any existing patient with this ID
-          const existingPatientIndex = mockPatients.findIndex(
-            (p) => p.id === patientData.id
-          );
-
-          if (existingPatientIndex >= 0) {
-            console.log(
-              "Updating existing patient data for:",
-              patientData.name
-            );
-            // Remove the existing patient
-            mockPatients.splice(existingPatientIndex, 1);
-          }
-
-          // Add the patient with fresh data
+          // Always add or update the patient in mockPatients to ensure fresh data
           console.log(
             "Adding/updating patient in mockPatients:",
-            patientData.name
+            patientData.name,
+            "with ID:",
+            patientData.id
           );
+
+          // Use the addNewPatient function which now handles both adding and updating
           addNewPatient(patientData);
+
+          // Log the current mockPatients array to verify
+          console.log(
+            "Current mockPatients array:",
+            mockPatients.map((p) => ({ id: p.id, name: p.name }))
+          );
 
           userDataWithName = patientData;
         } else {
@@ -450,12 +456,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const appointmentStore = useAppointmentStore.getState();
       appointmentStore.clearAppointments();
 
-      // If the user was a patient, remove them from mockPatients to ensure fresh data on next login
+      // We no longer remove patients from mockPatients when logging out
+      // This ensures that patient data persists between sessions
       if (userType === "patient" && userId) {
-        console.log("Removing patient data for:", userId);
+        console.log("Patient logged out:", userId);
+        // Instead of removing, we could update the lastLogin time if needed
         const patientIndex = mockPatients.findIndex((p) => p.id === userId);
         if (patientIndex >= 0) {
-          mockPatients.splice(patientIndex, 1);
+          console.log("Updating last logout time for patient");
+          mockPatients[patientIndex] = {
+            ...mockPatients[patientIndex],
+            lastLogout: new Date().toISOString(),
+          };
+          // Save the updated mockPatients to localStorage
+          try {
+            localStorage.setItem("savedPatients", JSON.stringify(mockPatients));
+          } catch (error) {
+            console.error("Error saving patients during logout:", error);
+          }
         }
       }
 
