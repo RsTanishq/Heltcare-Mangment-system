@@ -3,10 +3,19 @@ import Layout from "../components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
-import { Search, Star, Calendar, AlarmClock, Video, MapPin, AlertTriangle, MessageSquare } from "lucide-react";
+import {
+  Search,
+  Star,
+  Calendar,
+  AlarmClock,
+  Video,
+  MapPin,
+  AlertTriangle,
+  MessageSquare,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { mockDoctors, Doctor } from '../data/mockDoctors';
+import { mockDoctors, Doctor } from "../data/mockDoctors";
 import {
   Dialog,
   DialogContent,
@@ -15,12 +24,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -71,17 +80,18 @@ const Doctors = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!searchTerm) {
       setDoctors(mockDoctors);
       return;
     }
-    
-    const filtered = mockDoctors.filter(doctor => 
-      doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const filtered = mockDoctors.filter(
+      (doctor) =>
+        doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase())
     );
-    
+
     setDoctors(filtered);
   };
 
@@ -138,15 +148,21 @@ const Doctors = () => {
       patientName: currentUser.data.name,
       patientId: currentUser.data.id,
       doctorId: selectedDoctor.id,
-      doctorName: selectedDoctor.name,
-      date: selectedDate.toISOString().split('T')[0],
+      doctorName:
+        selectedDoctor.fullName || selectedDoctor.name || "Dr. Unknown", // Use fullName if available, fallback to name
+      date: selectedDate.toISOString().split("T")[0],
       time: selectedTime,
-      condition: appointmentReason,
-      status: 'pending',
-      visitMode: visitMode as 'online' | 'offline',
-      urgency: urgency as 'low' | 'medium' | 'high',
-      symptoms: appointmentReason,
-      paymentType: paymentType === "crypto" ? "Cryptocurrency" : paymentType === "money" ? "Money" : "UPI",
+      condition: appointmentReason || symptoms, // Use appointmentReason if available, fallback to symptoms
+      status: "pending",
+      visitMode: visitMode as "online" | "offline",
+      urgency: urgency as "low" | "medium" | "high",
+      symptoms: appointmentReason || symptoms,
+      paymentType:
+        paymentType === "crypto"
+          ? "Cryptocurrency"
+          : paymentType === "money"
+          ? "Money"
+          : "UPI",
       transactionHash: transactionHash || "N/A",
     });
     setShowConfirmation(true);
@@ -170,7 +186,7 @@ const Doctors = () => {
     <Layout role="patient">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Find a Doctor</h1>
-        
+
         <form onSubmit={handleSearch} className="flex gap-2">
           <Input
             placeholder="Search by name or specialty..."
@@ -183,20 +199,23 @@ const Doctors = () => {
             Search
           </Button>
         </form>
-        
+
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {doctors.map((doctor) => (
             <div key={doctor.id} className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-start space-x-4">
                 <Avatar className="h-16 w-16">
                   {doctor.profileImage ? (
-                    <img src={doctor.profileImage} alt={doctor.fullName || doctor.name} />
+                    <img
+                      src={doctor.profileImage}
+                      alt={doctor.fullName || doctor.name}
+                    />
                   ) : (
                     <div className="bg-blue-200 h-full w-full flex items-center justify-center">
                       <span className="text-blue-600 font-medium text-lg">
                         {(doctor.fullName || doctor.name || "Dr")
                           .split(" ")
-                          .map(part => part[0])
+                          .map((part) => part[0])
                           .join("")
                           .slice(0, 2)
                           .toUpperCase()}
@@ -204,31 +223,44 @@ const Doctors = () => {
                     </div>
                   )}
                 </Avatar>
-                
+
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">{doctor.fullName || doctor.name || "Doctor"}</h3>
-                  <p className="text-blue-600">{doctor.specialization || doctor.specialty || "General Medicine"}</p>
+                  <h3 className="font-semibold text-lg">
+                    {doctor.fullName || doctor.name || "Doctor"}
+                  </h3>
+                  <p className="text-blue-600">
+                    {doctor.specialization ||
+                      doctor.specialty ||
+                      "General Medicine"}
+                  </p>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">{doctor.rating || "New"}</span>
+                    <span className="text-sm font-medium">
+                      {doctor.rating || "New"}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-500">{doctor.yearsOfExperience || doctor.experience || "0"} years of experience</p>
+                  <p className="text-sm text-gray-500">
+                    {doctor.yearsOfExperience || doctor.experience || "0"} years
+                    of experience
+                  </p>
                   <p className={`text-xs font-medium text-gray-600`}>
                     {doctor.hospitalAffiliation || "Independent Practice"}
                   </p>
-                  <p className="text-sm text-gray-600">Contact: {doctor.phoneNumber || "Not Available"}</p>
+                  <p className="text-sm text-gray-600">
+                    Contact: {doctor.phoneNumber || "Not Available"}
+                  </p>
                 </div>
               </div>
-              
+
               <div className="mt-4 flex space-x-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1"
                   onClick={() => handleChat(doctor.id)}
                 >
                   Chat
                 </Button>
-                <Button 
+                <Button
                   className="flex-1"
                   onClick={() => {
                     setSelectedDoctor(doctor);
@@ -241,10 +273,11 @@ const Doctors = () => {
             </div>
           ))}
         </div>
-        
+
         {doctors.length === 0 && (
           <div className="text-center py-8 text-gray-500">
-            No doctors found matching your search. Please try different keywords.
+            No doctors found matching your search. Please try different
+            keywords.
           </div>
         )}
       </div>
@@ -253,7 +286,10 @@ const Doctors = () => {
       <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
         <DialogContent className="max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Book Appointment with {selectedDoctor?.name}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Book Appointment with{" "}
+              {selectedDoctor?.fullName || selectedDoctor?.name || "Doctor"}
+            </DialogTitle>
             <DialogDescription>
               Fill out the information below to book your appointment
             </DialogDescription>
@@ -272,13 +308,18 @@ const Doctors = () => {
                 <div className="flex items-center space-x-2">
                   <Calendar className="h-5 w-5 text-blue-500" />
                   <span className="font-medium">
-                    Specialty: {selectedDoctor?.specialty}
+                    Specialty:{" "}
+                    {selectedDoctor?.specialization ||
+                      selectedDoctor?.specialty ||
+                      "General Medicine"}
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <AlarmClock className="h-5 w-5 text-blue-500" />
                   <span className="font-medium">
-                    {selectedDoctor?.availability ? "Available Today" : "Not Available"}
+                    {selectedDoctor?.availability
+                      ? "Available Today"
+                      : "Not Available"}
                   </span>
                 </div>
               </div>
@@ -377,7 +418,10 @@ const Doctors = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="payment-method" className="flex items-center gap-2">
+                <Label
+                  htmlFor="payment-method"
+                  className="flex items-center gap-2"
+                >
                   <span>Payment Method</span>
                 </Label>
                 <Select value={paymentType} onValueChange={setPaymentType}>
@@ -399,10 +443,16 @@ const Doctors = () => {
                     onClick={handleCryptoPayment}
                     disabled={isPaying || !!transactionHash}
                   >
-                    {transactionHash ? "Payment Complete" : isPaying ? "Processing..." : "Pay 0.0025 ETH"}
+                    {transactionHash
+                      ? "Payment Complete"
+                      : isPaying
+                      ? "Processing..."
+                      : "Pay 0.0025 ETH"}
                   </Button>
                   {transactionHash && (
-                    <div className="text-xs text-green-600 break-all">Transaction Hash: {transactionHash}</div>
+                    <div className="text-xs text-green-600 break-all">
+                      Transaction Hash: {transactionHash}
+                    </div>
                   )}
                 </div>
               )}
@@ -412,12 +462,17 @@ const Doctors = () => {
           <DialogFooter>
             {!showConfirmation && (
               <>
-                <Button variant="outline" onClick={() => setIsBookingOpen(false)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsBookingOpen(false)}
+                >
                   Cancel
                 </Button>
-                <Button 
-                  onClick={handleBookAppointment} 
-                  disabled={!visitMode || !urgency || !symptoms.trim() || !paymentType}
+                <Button
+                  onClick={handleBookAppointment}
+                  disabled={
+                    !visitMode || !urgency || !symptoms.trim() || !paymentType
+                  }
                 >
                   Confirm Booking
                 </Button>
