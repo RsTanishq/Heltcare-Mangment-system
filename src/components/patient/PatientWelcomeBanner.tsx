@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/context/AuthContext";
 
 interface PatientWelcomeBannerProps {
   patientName?: string;
@@ -11,16 +12,31 @@ interface PatientWelcomeBannerProps {
   };
 }
 
-const PatientWelcomeBanner: React.FC<PatientWelcomeBannerProps> = ({ 
-  patientName = "Patient",
+const PatientWelcomeBanner: React.FC<PatientWelcomeBannerProps> = ({
+  patientName,
   patientImage,
-  nextAppointment
+  nextAppointment,
 }) => {
-  const initials = (patientName ?? "PT").split(' ').map(n => n[0]).join('');
+  const { currentUser } = useAuth();
+  const [displayName, setDisplayName] = useState(patientName || "Patient");
+
+  // Update the display name when currentUser changes
+  useEffect(() => {
+    if (currentUser?.data?.name && currentUser.data.name !== "Patient") {
+      setDisplayName(currentUser.data.name);
+    } else if (currentUser?.data?.fullName) {
+      setDisplayName(currentUser.data.fullName);
+    }
+  }, [currentUser]);
+
+  const initials = (displayName ?? "PT")
+    .split(" ")
+    .map((n) => n[0])
+    .join("");
 
   // Convert IPFS URL to HTTP URL if needed
-  const imageUrl = patientImage?.startsWith('ipfs://') 
-    ? patientImage.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+  const imageUrl = patientImage?.startsWith("ipfs://")
+    ? patientImage.replace("ipfs://", "https://gateway.pinata.cloud/ipfs/")
     : patientImage;
 
   return (
@@ -36,11 +52,11 @@ const PatientWelcomeBanner: React.FC<PatientWelcomeBannerProps> = ({
               </AvatarFallback>
             )}
           </Avatar>
-          
+
           <div>
-            <h2 className="text-2xl font-bold">Welcome, {patientName}</h2>
+            <h2 className="text-2xl font-bold">Welcome, {displayName}</h2>
             <p className="text-indigo-100 mt-1">
-              {nextAppointment 
+              {nextAppointment
                 ? `Your next appointment is on ${nextAppointment.date} with Dr. ${nextAppointment.doctorName}`
                 : "No upcoming appointments"}
             </p>
@@ -51,4 +67,4 @@ const PatientWelcomeBanner: React.FC<PatientWelcomeBannerProps> = ({
   );
 };
 
-export default PatientWelcomeBanner; 
+export default PatientWelcomeBanner;

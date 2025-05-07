@@ -23,7 +23,7 @@ const PatientDashboard = () => {
     <Layout role="patient">
       <div className="space-y-6">
         <PatientWelcomeBanner
-          patientName={currentUser?.data?.fullName}
+          patientName={currentUser?.data?.name || currentUser?.data?.fullName}
           patientImage={currentUser?.data?.profileImage}
         />
 

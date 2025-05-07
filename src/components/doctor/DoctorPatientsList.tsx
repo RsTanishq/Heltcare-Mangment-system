@@ -35,9 +35,33 @@ const DoctorPatientsList: React.FC = () => {
 
   // Update patients list whenever component mounts or re-renders
   useEffect(() => {
-    // Get the latest patients from the mockPatients array
-    setPatients(getAllPatients());
-  }, []);
+    // Function to refresh the patient list
+    const refreshPatientList = () => {
+      const latestPatients = getAllPatients();
+      console.log("Latest patients in DoctorPatientsList:", latestPatients);
+
+      // Check if any patient names have changed
+      const hasNameChanges = latestPatients.some((patient, index) => {
+        return patients[index]?.name !== patient.name;
+      });
+
+      // Update the patient list if there are changes
+      if (hasNameChanges || latestPatients.length !== patients.length) {
+        console.log("Patient list updated, refreshing...");
+        setPatients(latestPatients);
+      }
+    };
+
+    // Initial refresh
+    refreshPatientList();
+
+    // Set up an interval to refresh the patient list every 2 seconds
+    // This ensures that new patients are displayed without requiring a page refresh
+    const intervalId = setInterval(refreshPatientList, 2000);
+
+    // Clean up the interval when the component unmounts
+    return () => clearInterval(intervalId);
+  }, [patients]); // Add patients as a dependency to avoid ESLint warnings
 
   // Filter patients based on search term
   const filteredPatients = patients.filter(

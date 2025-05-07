@@ -8,6 +8,7 @@ import { BlockchainService } from "../services/blockchainService";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import axios from "axios";
 
 interface FormData {
@@ -16,6 +17,7 @@ interface FormData {
   phoneNumber: string;
   password: string;
   confirmPassword: string;
+  gender: "Male" | "Female" | "Other";
   registrationNumber: string;
   specialization: string;
   yearsOfExperience: string;
@@ -38,6 +40,7 @@ const SignupPage = () => {
     phoneNumber: "",
     password: "",
     confirmPassword: "",
+    gender: "Male", // Default gender
     registrationNumber: "",
     specialization: "",
     yearsOfExperience: "",
@@ -110,43 +113,75 @@ const SignupPage = () => {
 
       // First register on blockchain
       if (userType === "patient") {
+        // Format the name properly with capitalization
+        const formattedName = formData.fullName
+          .split(" ")
+          .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(" ");
+
+        console.log("Original name:", formData.fullName);
+        console.log("Formatted name:", formattedName);
+
         await blockchainService.registerPatient({
-          fullName: formData.fullName,
+          fullName: formattedName, // Use properly formatted name
           email: formData.email,
           walletAddress: account || "",
           phoneNumber: formData.phoneNumber,
+          gender: formData.gender, // Pass gender to blockchain service
           profileImage: formData.profileImage || undefined,
         });
 
         // Then add to local storage and mock data
         // This will add the patient to the doctor's patient directory
-        const success = await signup(
-          {
-            fullName: formData.fullName,
-            email: formData.email,
-            phoneNumber: formData.phoneNumber,
-            walletAddress: account || "",
-            // Convert File to string URL if available
-            profileImage: formData.profileImage
-              ? URL.createObjectURL(formData.profileImage)
-              : "/patients/placeholder.jpg",
-            gender: "Other", // Default values
-            dateOfBirth: new Date().toISOString().split("T")[0],
-          },
-          "patient"
-        );
+
+        // Create the patient data object with the formatted name
+        const patientData = {
+          fullName: formattedName, // Use the formatted name
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          walletAddress: account || "",
+          // Convert File to string URL if available
+          profileImage: formData.profileImage
+            ? URL.createObjectURL(formData.profileImage)
+            : "/patients/placeholder.jpg",
+          gender: formData.gender, // Use selected gender
+          dateOfBirth: new Date().toISOString().split("T")[0],
+        };
+
+        console.log("Patient data being passed to signup:", patientData);
+
+        const success = await signup(patientData, "patient");
 
         if (success) {
           navigate("/patient-dashboard");
         }
       } else {
+        // Format the name properly with capitalization
+        const formattedName = formData.fullName
+          .split(" ")
+          .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(" ");
+
+        // Format specialization with proper capitalization
+        const formattedSpecialization = formData.specialization
+          .split(" ")
+          .map(
+            (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(" ");
+
         await blockchainService.registerDoctor({
-          fullName: formData.fullName,
+          fullName: formattedName, // Use properly formatted name
           email: formData.email,
           walletAddress: account || "",
-          specialization: formData.specialization,
+          specialization: formattedSpecialization, // Use properly formatted specialization
           license: formData.registrationNumber,
           phoneNumber: formData.phoneNumber,
+          gender: formData.gender, // Pass gender to blockchain service
           yearsOfExperience: formData.yearsOfExperience,
           hospitalAffiliation: formData.hospitalAffiliation,
           workAddress: formData.workAddress,
@@ -154,23 +189,27 @@ const SignupPage = () => {
         });
 
         // Add doctor to local storage
-        await signup(
-          {
-            fullName: formData.fullName,
-            email: formData.email,
-            phoneNumber: formData.phoneNumber,
-            specialization: formData.specialization,
-            registrationNumber: formData.registrationNumber,
-            yearsOfExperience: formData.yearsOfExperience,
-            hospitalAffiliation: formData.hospitalAffiliation,
-            workAddress: formData.workAddress,
-            walletAddress: account || "",
-            profileImage: formData.profileImage
-              ? URL.createObjectURL(formData.profileImage)
-              : "/doctors/placeholder.jpg",
-          },
-          "doctor"
-        );
+
+        // Create the doctor data object with the formatted name
+        const doctorData = {
+          fullName: formattedName, // Use the formatted name
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          specialization: formattedSpecialization, // Use the formatted specialization
+          registrationNumber: formData.registrationNumber,
+          yearsOfExperience: formData.yearsOfExperience,
+          hospitalAffiliation: formData.hospitalAffiliation,
+          workAddress: formData.workAddress,
+          walletAddress: account || "",
+          gender: formData.gender, // Include gender for doctors too
+          profileImage: formData.profileImage
+            ? URL.createObjectURL(formData.profileImage)
+            : "/doctors/placeholder.jpg",
+        };
+
+        console.log("Doctor data being passed to signup:", doctorData);
+
+        await signup(doctorData, "doctor");
 
         navigate("/doctor-dashboard");
       }
@@ -281,6 +320,35 @@ const SignupPage = () => {
                   }
                   placeholder="Confirm your password"
                 />
+              </div>
+
+              <div>
+                <Label htmlFor="gender" className="mb-2 block">
+                  Gender
+                </Label>
+                <RadioGroup
+                  value={formData.gender}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      gender: value as "Male" | "Female" | "Other",
+                    })
+                  }
+                  className="flex space-x-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Male" id="male" />
+                    <Label htmlFor="male">Male</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Female" id="female" />
+                    <Label htmlFor="female">Female</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="Other" id="other" />
+                    <Label htmlFor="other">Other</Label>
+                  </div>
+                </RadioGroup>
               </div>
 
               <div>

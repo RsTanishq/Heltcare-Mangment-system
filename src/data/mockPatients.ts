@@ -65,6 +65,8 @@ export interface Patient {
   lowestBloodPressure: string;
   appointments: Appointment[];
   recentAppointments: Appointment[];
+  walletAddress?: string; // Ethereum wallet address
+  lastLogin?: string; // Last login timestamp
 }
 
 export const mockPatients: Patient[] = [

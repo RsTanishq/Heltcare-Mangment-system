@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Doctor, mockDoctors } from "../data/mockDoctors";
+import { Doctor } from "../data/mockDoctors";
 import {
   Patient,
   mockPatients,
@@ -7,6 +7,7 @@ import {
   generatePatientId,
 } from "../data/mockPatients";
 import { BlockchainService } from "../services/blockchainService";
+import useAppointmentStore from "../store/appointmentStore";
 
 interface AuthContextType {
   currentUser: {
@@ -39,15 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Check for saved session
     const checkAuthState = async () => {
       try {
-        // TEMPORARY FIX: Always clear localStorage to force login page
-        localStorage.removeItem("currentUser");
-        localStorage.removeItem("rememberedCredentials");
-        localStorage.removeItem("doctorActiveTab");
-        localStorage.removeItem("doctorMedications");
-        localStorage.removeItem("doctorPatients");
-
-        // Original code (commented out for now)
-        /*
+        // Restore user session from localStorage
         const savedUser = localStorage.getItem("currentUser");
         if (savedUser) {
           const parsedUser = JSON.parse(savedUser);
@@ -58,6 +51,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               "Restoring auth state from localStorage:",
               parsedUser.type
             );
+
+            // Make sure the name is properly set
+            if (
+              parsedUser.data.name === "Patient" &&
+              parsedUser.data.fullName
+            ) {
+              parsedUser.data.name = parsedUser.data.fullName;
+            }
+
             setCurrentUser(parsedUser);
 
             // If using MetaMask, verify the wallet is still connected
@@ -85,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             localStorage.removeItem("currentUser");
           }
         }
-        */
       } catch (error) {
         console.error("Error restoring auth state:", error);
         localStorage.removeItem("currentUser");
@@ -115,21 +116,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<boolean> => {
     try {
       // Create a new user object
-      let newUser;
+      let newUser: Doctor | Patient;
 
       if (type === "patient") {
         // Generate a proper patient ID
         const patientId = generatePatientId();
 
         // Create a complete patient object with required fields
+        // Log the userData to see what's coming in
+        console.log("userData received in AuthContext:", userData);
+
         const newPatient: Patient = {
           id: patientId,
-          name: userData.fullName,
+          // Make sure we're using the correct property for the name
+          name: userData.fullName || "Patient", // This should be the formatted name from signup
           email: userData.email,
           phone: userData.phoneNumber || "",
           dateOfBirth:
             userData.dateOfBirth || new Date().toISOString().split("T")[0],
-          gender: userData.gender || "Other",
+          gender: userData.gender || "Male",
           bloodGroup: userData.bloodGroup || "Unknown",
           address: userData.address || "",
           emergencyContact: {
@@ -161,6 +166,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           appointments: [],
           recentAppointments: [],
         };
+
+        // Log the patient data before adding to mockPatients
+        console.log("Creating new patient with name:", userData.fullName);
 
         // Add the new patient to the mockPatients array
         addNewPatient(newPatient);
@@ -219,15 +227,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw new Error(`Not registered as a ${type}`);
         }
 
+        // Log the userData from IPFS to debug
+        console.log("User data from IPFS:", userData);
+
         // Create a proper user object with an ID
+        let userDataWithName = { ...userData };
+
+        // Make sure we have a name property
+        if (type === "patient") {
+          // For patients, create a proper Patient object
+          const patientData: Patient = {
+            id: walletAddress.toLowerCase(),
+            name: userData.fullName || "Unknown Patient", // Use fullName from IPFS
+            email: userData.email || "",
+            phone: userData.phoneNumber || "",
+            dateOfBirth:
+              userData.dateOfBirth || new Date().toISOString().split("T")[0],
+            gender: userData.gender || "Male",
+            bloodGroup: userData.bloodGroup || "Unknown",
+            address: userData.address || "",
+            emergencyContact: {
+              name: userData.emergencyContactName || "Not provided",
+              relationship:
+                userData.emergencyContactRelationship || "Not provided",
+              phone: userData.emergencyContactPhone || "Not provided",
+            },
+            medicalHistory: [],
+            allergies: [],
+            vaccinations: [],
+            weight: userData.weight || 0,
+            height: userData.height || 0,
+            profileImage: userData.profileImage || "/placeholder.svg",
+            createdAt: userData.createdAt || new Date().toISOString(),
+            lastVisit: new Date().toISOString(),
+            bloodPressureHistory: [
+              { date: "Sunday", value: 120 },
+              { date: "Monday", value: 120 },
+              { date: "Tuesday", value: 120 },
+              { date: "Wednesday", value: 120 },
+              { date: "Thursday", value: 120 },
+              { date: "Friday", value: 120 },
+              { date: "Saturday", value: 120 },
+            ],
+            recentBloodPressure: "120/80",
+            highestBloodPressure: "120/80",
+            lowestBloodPressure: "120/80",
+            appointments: [],
+            recentAppointments: [],
+            walletAddress: walletAddress.toLowerCase(),
+            lastLogin: new Date().toISOString(),
+          };
+
+          // Add the patient to mockPatients if not already there
+          const existingPatient = mockPatients.find(
+            (p) => p.id === patientData.id
+          );
+          if (!existingPatient) {
+            addNewPatient(patientData);
+          }
+
+          userDataWithName = patientData;
+        } else {
+          // For doctors or other types
+          userDataWithName = {
+            ...userData,
+            id: walletAddress.toLowerCase(),
+            name:
+              userData.fullName ||
+              `Unknown ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+            walletAddress: walletAddress.toLowerCase(),
+            lastLogin: new Date().toISOString(),
+          };
+        }
+
         const userState = {
           type,
-          data: {
-            ...userData,
-            id: walletAddress.toLowerCase(), // Use wallet address as ID
-            walletAddress: walletAddress.toLowerCase(),
-            lastLogin: new Date().toISOString(), // Add login timestamp
-          },
+          data: userDataWithName,
         };
 
         // Update state and persist to localStorage
@@ -244,12 +319,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email === "demo@example.com" &&
         password === "demo123"
       ) {
-        const mockUserData = {
-          id: `demo-${type}-${Date.now()}`,
-          name: `Demo ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-          email: email,
-          // Add other required fields based on your user model
-        };
+        // Create a proper mock user based on the type
+        let mockUserData: Patient | Doctor;
+
+        if (type === "patient") {
+          // Create a mock patient
+          mockUserData = {
+            id: `demo-${type}-${Date.now()}`,
+            name: `Demo Patient`,
+            email: email,
+            phone: "+91 98765 43210",
+            dateOfBirth: "1990-01-01",
+            gender: "Male",
+            bloodGroup: "O+",
+            address: "123 Demo Street, Demo City",
+            emergencyContact: {
+              name: "Emergency Contact",
+              relationship: "Relative",
+              phone: "+91 98765 43211",
+            },
+            medicalHistory: [],
+            allergies: [],
+            vaccinations: [],
+            weight: 70,
+            height: 170,
+            profileImage: "/patients/placeholder.jpg",
+            createdAt: new Date().toISOString(),
+            lastVisit: new Date().toISOString(),
+            bloodPressureHistory: [
+              { date: "Sunday", value: 120 },
+              { date: "Monday", value: 120 },
+              { date: "Tuesday", value: 120 },
+              { date: "Wednesday", value: 120 },
+              { date: "Thursday", value: 120 },
+              { date: "Friday", value: 120 },
+              { date: "Saturday", value: 120 },
+            ],
+            recentBloodPressure: "120/80",
+            highestBloodPressure: "120/80",
+            lowestBloodPressure: "120/80",
+            appointments: [],
+            recentAppointments: [],
+            walletAddress: "0xdemo",
+            lastLogin: new Date().toISOString(),
+          };
+
+          // Add to mockPatients
+          addNewPatient(mockUserData as Patient);
+        } else {
+          // Create a mock doctor with all required fields
+          mockUserData = {
+            id: `demo-${type}-${Date.now()}`,
+            name: `Demo Doctor`,
+            email: email,
+            specialty: "General Medicine",
+            image: "/doctors/placeholder.jpg",
+            availability: true,
+            phone: "+91 98765 43210",
+            address: "123 Demo Street, Demo City",
+            experience: 5,
+            rating: 4.5,
+            consultationFee: 1000,
+            workingHours: {
+              start: "09:00",
+              end: "17:00",
+              days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+            },
+            about: "Demo doctor for testing purposes",
+            languages: ["English", "Hindi"],
+            education: ["MBBS - Demo University"],
+            certifications: ["Demo Certification"],
+          } as Doctor;
+        }
 
         const userState = { type, data: mockUserData };
         setCurrentUser(userState);
@@ -273,10 +414,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentUser({ type: null, data: null });
 
       // Clear all stored data
-      localStorage.removeItem("currentUser");
-      localStorage.removeItem("rememberedCredentials");
-      localStorage.removeItem("doctorActiveTab"); // Clear any saved tabs
+      localStorage.clear(); // Clear all localStorage items
+      sessionStorage.clear(); // Clear all sessionStorage items
+
+      // Set a flag to indicate the user just logged out
       localStorage.setItem("justLoggedOut", "true");
+
+      // Clear appointments from the store
+      const appointmentStore = useAppointmentStore.getState();
+      appointmentStore.clearAppointments();
 
       // If using blockchain service, disconnect wallet
       if (window.ethereum) {
@@ -288,10 +434,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
 
-      // Clear any session storage items that might contain sensitive data
-      sessionStorage.clear();
+      // Clear mock data for the next session
+      // This will reset any appointments or other data that might be persisting
+      if (typeof window !== "undefined") {
+        // Reset any mock data that might be stored in window object
+        (window as any).mockDataReset = true;
+      }
 
-      console.log("User logged out successfully");
+      console.log("User logged out successfully and all data cleared");
       return true;
     } catch (error) {
       console.error("Logout error:", error);

@@ -9,6 +9,9 @@ export class BlockchainService {
   private pinataSecretKey: string;
   private REGISTRATION_FEE = ethers.parseEther("0.00025"); // Define fee directly
 
+  // Static flag to track if we've already logged environment info
+  private static hasLoggedEnvInfo = false;
+
   constructor() {
     // Check if window.ethereum exists
     if (typeof window.ethereum === "undefined") {
@@ -44,16 +47,21 @@ export class BlockchainService {
     this.pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
     this.pinataSecretKey = import.meta.env.VITE_PINATA_SECRET_KEY;
 
-    // Log environment variables (masked for security)
-    console.log("Environment variables loaded:");
-    console.log("- Contract Address available:", !!contractAddress);
-    console.log("- Pinata API Key available:", !!this.pinataApiKey);
-    console.log("- Pinata Secret Key available:", !!this.pinataSecretKey);
+    // Only log environment variables once to avoid console spam
+    if (!BlockchainService.hasLoggedEnvInfo) {
+      console.log("Environment variables loaded:");
+      console.log("- Contract Address available:", !!contractAddress);
+      console.log("- Pinata API Key available:", !!this.pinataApiKey);
+      console.log("- Pinata Secret Key available:", !!this.pinataSecretKey);
 
-    if (!this.pinataApiKey || !this.pinataSecretKey) {
-      console.warn(
-        "WARNING: Pinata API keys are missing or invalid. File uploads will fail."
-      );
+      if (!this.pinataApiKey || !this.pinataSecretKey) {
+        console.warn(
+          "WARNING: Pinata API keys are missing or invalid. File uploads will fail."
+        );
+      }
+
+      // Set flag to true so we don't log again
+      BlockchainService.hasLoggedEnvInfo = true;
     }
   }
 
@@ -179,13 +187,11 @@ export class BlockchainService {
     error?: string;
   }> {
     try {
-      // Log API keys (masked for security)
-      console.log("Pinata API Key available:", !!this.pinataApiKey);
-      console.log("Pinata Secret Key available:", !!this.pinataSecretKey);
-      console.log("File details:", {
+      // Log file details only (no sensitive info)
+      console.log("Uploading file:", {
         name: file.name,
         type: file.type,
-        size: file.size,
+        size: `${(file.size / 1024).toFixed(2)} KB`,
       });
 
       // Create FormData
@@ -211,8 +217,6 @@ export class BlockchainService {
       });
       formData.append("pinataOptions", options);
 
-      console.log("Sending request to Pinata...");
-
       // Make sure we're using the correct API keys from environment variables
       const pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
       const pinataSecretKey = import.meta.env.VITE_PINATA_SECRET_KEY;
@@ -235,8 +239,6 @@ export class BlockchainService {
           },
         }
       );
-
-      console.log("Pinata response:", response.data);
 
       if (response.data.IpfsHash) {
         // Format file size for display
@@ -273,7 +275,7 @@ export class BlockchainService {
           format: getDocumentFormat(file.type),
         };
 
-        console.log("Upload successful, returning result:", result);
+        console.log("File uploaded successfully to IPFS");
         return result;
       } else {
         throw new Error("No IPFS hash received from Pinata");
@@ -306,6 +308,7 @@ export class BlockchainService {
     email: string;
     walletAddress: string;
     phoneNumber: string;
+    gender?: "Male" | "Female" | "Other";
     profileImage?: File;
   }) {
     try {
@@ -322,6 +325,7 @@ export class BlockchainService {
         fullName: patientData.fullName,
         email: patientData.email,
         phoneNumber: patientData.phoneNumber,
+        gender: patientData.gender || "Male", // Include gender
         profileImage: profileImageUrl,
         createdAt: new Date().toISOString(),
       });
@@ -353,6 +357,7 @@ export class BlockchainService {
     specialization: string;
     license: string;
     phoneNumber: string;
+    gender?: "Male" | "Female" | "Other";
     yearsOfExperience: string;
     hospitalAffiliation: string;
     workAddress: string;
@@ -374,6 +379,7 @@ export class BlockchainService {
         specialization: doctorData.specialization,
         license: doctorData.license,
         phoneNumber: doctorData.phoneNumber,
+        gender: doctorData.gender || "Male", // Include gender
         yearsOfExperience: doctorData.yearsOfExperience,
         hospitalAffiliation: doctorData.hospitalAffiliation,
         workAddress: doctorData.workAddress,
