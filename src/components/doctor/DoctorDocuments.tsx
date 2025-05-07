@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,8 +51,8 @@ const DoctorDocuments: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sample documents data with nested structure
-  const [documents, setDocuments] = useState<Document[]>([
+  // Default documents data
+  const defaultDocuments: Document[] = [
     {
       id: "patients",
       name: "Patients",
@@ -231,7 +231,27 @@ const DoctorDocuments: React.FC = () => {
       starred: true,
       path: [],
     },
-  ]);
+  ];
+
+  // Initialize documents from localStorage or use default
+  const [documents, setDocuments] = useState<Document[]>(() => {
+    // Try to get documents from localStorage
+    const savedDocuments = localStorage.getItem("doctorDocuments");
+    if (savedDocuments) {
+      try {
+        return JSON.parse(savedDocuments);
+      } catch (error) {
+        console.error("Error parsing saved documents:", error);
+        return defaultDocuments;
+      }
+    }
+    return defaultDocuments;
+  });
+
+  // Save documents to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem("doctorDocuments", JSON.stringify(documents));
+  }, [documents]);
 
   // Filter documents based on search term and current path
   const filteredDocuments = documents.filter(
@@ -271,9 +291,27 @@ const DoctorDocuments: React.FC = () => {
         description: `Opening email: ${doc.subject}`,
       });
     } else {
+      // For files, show a toast with a link to view the file
       toast({
         title: "Opening Document",
-        description: `Opening ${doc.name}`,
+        description: (
+          <div>
+            <p>Opening {doc.name}</p>
+            {doc.content && (
+              <p className="mt-1">
+                <a
+                  href={doc.content}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-blue-600"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Click here to view
+                </a>
+              </p>
+            )}
+          </div>
+        ),
       });
     }
   };
@@ -285,16 +323,23 @@ const DoctorDocuments: React.FC = () => {
   };
 
   const toggleStar = (id: string) => {
-    // In a real app, this would update the database
     // Find the document by id and toggle its starred status
     const updatedDocs = documents.map((doc: Document) =>
       doc.id === id ? { ...doc, starred: !doc.starred } : doc
     );
+
+    // Update state (which will trigger the useEffect to save to localStorage)
     setDocuments(updatedDocs);
+
+    // Find the document to get its name for the toast
+    const doc = documents.find((doc) => doc.id === id);
+    const docName = doc ? doc.name : id;
 
     toast({
       title: "Starred Status Changed",
-      description: `Document ${id} star status has been updated.`,
+      description: `"${docName}" has been ${
+        doc?.starred ? "removed from" : "added to"
+      } starred items.`,
     });
   };
 
@@ -351,8 +396,7 @@ const DoctorDocuments: React.FC = () => {
           return updatedDocs;
         });
 
-        // Open the Pinata URL in a new tab to verify the upload
-        window.open(result.url, "_blank");
+        // No longer automatically opening the URL in a new tab
 
         toast({
           title: "Upload Successful",
