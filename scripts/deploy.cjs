@@ -1,16 +1,20 @@
 const hre = require("hardhat");
+const fs = require("fs");
 
 async function main() {
-  console.log("Starting deployment...");
-  
-  // Get the contract factory
   const Healthcare = await hre.ethers.getContractFactory("Healthcare");
-  console.log("Contract factory created...");
+  console.log("Deploying Healthcare contract...");
   
-  // Deploy the contract
   const healthcare = await Healthcare.deploy();
-  console.log("Contract deployed to:", await healthcare.getAddress());
-  console.log("Contract successfully deployed!");
+  await healthcare.waitForDeployment();
+
+  const address = await healthcare.getAddress();
+  console.log("Healthcare contract deployed to:", address);
+  
+  // Save the contract address to a file
+  const envContent = `VITE_CONTRACT_ADDRESS=${address}`;
+  fs.writeFileSync('.env.local', envContent);
+  console.log("Contract address saved to .env.local");
 }
 
 main()

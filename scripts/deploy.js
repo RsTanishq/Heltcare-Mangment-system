@@ -1,26 +1,27 @@
-const hre = require("hardhat");
+import { ethers } from "hardhat";
+import fs from "fs";
 
 async function main() {
   // Deploy AccessControl contract first
-  const AccessControl = await hre.ethers.getContractFactory("AccessControl");
+  const AccessControl = await ethers.getContractFactory("AccessControl");
   const accessControl = await AccessControl.deploy();
   await accessControl.deployed();
   console.log("AccessControl deployed to:", accessControl.address);
 
   // Deploy PatientConsent contract
-  const PatientConsent = await hre.ethers.getContractFactory("PatientConsent");
+  const PatientConsent = await ethers.getContractFactory("PatientConsent");
   const patientConsent = await PatientConsent.deploy(accessControl.address);
   await patientConsent.deployed();
   console.log("PatientConsent deployed to:", patientConsent.address);
 
   // Deploy HealthcareProvider contract
-  const HealthcareProvider = await hre.ethers.getContractFactory("HealthcareProvider");
+  const HealthcareProvider = await ethers.getContractFactory("HealthcareProvider");
   const healthcareProvider = await HealthcareProvider.deploy(accessControl.address);
   await healthcareProvider.deployed();
   console.log("HealthcareProvider deployed to:", healthcareProvider.address);
 
   // Deploy HealthcareRecord contract
-  const HealthcareRecord = await hre.ethers.getContractFactory("HealthcareRecord");
+  const HealthcareRecord = await ethers.getContractFactory("HealthcareRecord");
   const healthcareRecord = await HealthcareRecord.deploy(
     accessControl.address,
     patientConsent.address,
@@ -30,7 +31,7 @@ async function main() {
   console.log("HealthcareRecord deployed to:", healthcareRecord.address);
 
   // Initialize roles and permissions
-  const [deployer] = await hre.ethers.getSigners();
+  const [deployer] = await ethers.getSigners();
   
   // Grant admin role to deployer
   await accessControl.grantRole(await accessControl.ADMIN(), deployer.address);
@@ -53,7 +54,7 @@ async function main() {
   await healthcareProvider.verifyProvider(deployer.address);
   console.log("Deployer verified as provider");
 
-  const Healthcare = await hre.ethers.getContractFactory("Healthcare");
+  const Healthcare = await ethers.getContractFactory("Healthcare");
   console.log("Deploying Healthcare contract...");
   
   const healthcare = await Healthcare.deploy();
@@ -62,8 +63,9 @@ async function main() {
   console.log("Healthcare contract deployed to:", healthcare.address);
   
   // Save the contract address to a file
-  const fs = require("fs");
-  const envContent = `REACT
+  const envContent = `VITE_CONTRACT_ADDRESS=${healthcare.address}`;
+  fs.writeFileSync('.env.local', envContent);
+  console.log("Contract address saved to .env.local");
 }
 
 main()

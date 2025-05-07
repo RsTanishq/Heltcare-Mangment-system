@@ -29,7 +29,11 @@ export class BlockchainService {
       contractAddress,
       HealthcareABI.abi,
       this.provider
-    );
+    ) as unknown as ethers.Contract & {
+      registerUser: (name: string, role: string, ipfsHash: string, options?: { value: bigint }) => Promise<ethers.ContractTransactionResponse>;
+      getUserDetails: (address: string) => Promise<any>;
+      getAllDoctors: () => Promise<string[]>;
+    };
 
     // Use Vite's environment variables for Pinata
     this.pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
@@ -324,6 +328,43 @@ export class BlockchainService {
       return true;
     } catch (error) {
       console.error('Error disconnecting wallet:', error);
+      throw error;
+    }
+  }
+
+  // Fetch all doctors from the smart contract
+  async getAllDoctors(): Promise<any[]> {
+    try {
+      const signer = await this.provider.getSigner();
+      const contractWithSigner = this.contract.connect(signer);
+      
+      // Get all doctor addresses from the contract
+      const doctorAddresses: string[] = await contractWithSigner.getAllDoctors();
+      const doctors: any[] = [];
+      
+      for (const address of doctorAddresses) {
+        const userDetails = await contractWithSigner.getUserDetails(address);
+        if (userDetails && userDetails.isRegistered && userDetails.role === 'doctor') {
+          let ipfsData = {};
+          if (userDetails.ipfsHash) {
+            const ipfsUrl = userDetails.ipfsHash.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
+            try {
+              const response = await axios.get(ipfsUrl);
+              ipfsData = response.data;
+            } catch (e) {
+              // Ignore IPFS fetch errors for now
+            }
+          }
+          doctors.push({
+            address,
+            ...userDetails,
+            ...ipfsData
+          });
+        }
+      }
+      return doctors;
+    } catch (error) {
+      console.error('Error fetching all doctors:', error);
       throw error;
     }
   }

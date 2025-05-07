@@ -22,6 +22,7 @@ contract Healthcare {
     
     mapping(address => User) public users;
     mapping(address => MedicalRecord[]) public patientRecords;
+    address[] public doctorAddresses;
 
     event UserRegistered(address indexed userAddress, string role);
     event MedicalRecordAdded(address indexed patient, address indexed doctor, string ipfsHash);
@@ -41,7 +42,9 @@ contract Healthcare {
         require(msg.value == REGISTRATION_FEE, "Incorrect registration fee");
 
         users[msg.sender] = User(_name, _role, _ipfsHash, true);
-        
+        if (keccak256(abi.encodePacked(_role)) == keccak256(abi.encodePacked("doctor"))) {
+            doctorAddresses.push(msg.sender);
+        }
         // Transfer the registration fee to the contract owner
         (bool sent, ) = owner.call{value: msg.value}("");
         require(sent, "Failed to send registration fee");
@@ -86,5 +89,9 @@ contract Healthcare {
     // View function to get registration fee
     function getRegistrationFee() public pure returns (uint256) {
         return REGISTRATION_FEE;
+    }
+
+    function getAllDoctors() public view returns (address[] memory) {
+        return doctorAddresses;
     }
 } 

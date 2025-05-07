@@ -108,6 +108,4 @@ export const mockDoctors: Doctor[] = [
       'Advanced Arthroscopy Certification'
     ]
   }
-];
-
-export default mockDoctors; 
+]; 

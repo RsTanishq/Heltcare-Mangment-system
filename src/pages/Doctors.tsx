@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "../components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,10 +27,11 @@ import { Label } from "@/components/ui/label";
 import useAppointmentStore from "@/store/appointmentStore";
 import { useAuth } from "@/context/AuthContext";
 import { useMetaMask } from "@/hooks/useMetaMask";
+import { BlockchainService } from "../services/blockchainService";
 
 const Doctors = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [doctors, setDoctors] = useState<Doctor[]>(mockDoctors);
+  const [doctors, setDoctors] = useState<any[]>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { addAppointment } = useAppointmentStore();
@@ -50,6 +51,23 @@ const Doctors = () => {
   const [paymentType, setPaymentType] = useState("");
   const [transactionHash, setTransactionHash] = useState("");
   const [isPaying, setIsPaying] = useState(false);
+
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      const blockchainService = new BlockchainService();
+      try {
+        const doctorList = await blockchainService.getAllDoctors();
+        setDoctors(doctorList);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch doctors from blockchain.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchDoctors();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,31 +189,34 @@ const Doctors = () => {
             <div key={doctor.id} className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-start space-x-4">
                 <Avatar className="h-16 w-16">
-                  {doctor.image ? (
-                    <img src={doctor.image} alt={doctor.name} />
+                  {doctor.profileImage ? (
+                    <img src={doctor.profileImage} alt={doctor.fullName || doctor.name} />
                   ) : (
                     <div className="bg-blue-200 h-full w-full flex items-center justify-center">
                       <span className="text-blue-600 font-medium text-lg">
-                        {doctor.name.split(" ")[1][0]}
+                        {(doctor.fullName || doctor.name || "Dr")
+                          .split(" ")
+                          .map(part => part[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
                       </span>
                     </div>
                   )}
                 </Avatar>
                 
                 <div className="space-y-1">
-                  <h3 className="font-semibold text-lg">{doctor.name}</h3>
-                  <p className="text-blue-600">{doctor.specialty}</p>
+                  <h3 className="font-semibold text-lg">{doctor.fullName || doctor.name || "Doctor"}</h3>
+                  <p className="text-blue-600">{doctor.specialization || doctor.specialty || "General Medicine"}</p>
                   <div className="flex items-center">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                    <span className="text-sm font-medium">{doctor.rating}</span>
+                    <span className="text-sm font-medium">{doctor.rating || "New"}</span>
                   </div>
-                  <p className="text-sm text-gray-500">{doctor.experience} years of experience</p>
-                  <p className={`text-xs font-medium ${
-                    doctor.availability ? "text-green-600" : "text-gray-600"
-                  }`}>
-                    {doctor.availability ? "Available Today" : "Not Available"}
+                  <p className="text-sm text-gray-500">{doctor.yearsOfExperience || doctor.experience || "0"} years of experience</p>
+                  <p className={`text-xs font-medium text-gray-600`}>
+                    {doctor.hospitalAffiliation || "Independent Practice"}
                   </p>
-                  <p className="text-sm text-gray-600">₹{doctor.consultationFee} per consultation</p>
+                  <p className="text-sm text-gray-600">Contact: {doctor.phoneNumber || "Not Available"}</p>
                 </div>
               </div>
               
