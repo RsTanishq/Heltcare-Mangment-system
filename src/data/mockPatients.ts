@@ -9,7 +9,7 @@ export interface PatientMedicalHistory {
 
 export interface PatientAllergy {
   allergen: string;
-  severity: 'Mild' | 'Moderate' | 'Severe';
+  severity: "Mild" | "Moderate" | "Severe";
   diagnosed: string;
 }
 
@@ -33,8 +33,8 @@ export interface Appointment {
   type: string;
   date: string;
   htpiScore: number;
-  status: 'upcoming' | 'finished' | 'cancelled';
-  paymentStatus: 'pending' | 'completed';
+  status: "upcoming" | "finished" | "cancelled";
+  paymentStatus: "pending" | "completed";
 }
 
 export interface Patient {
@@ -43,7 +43,7 @@ export interface Patient {
   email: string;
   phone: string;
   dateOfBirth: string;
-  gender: 'Male' | 'Female' | 'Other';
+  gender: "Male" | "Female" | "Other";
   bloodGroup: string;
   address: string;
   emergencyContact: {
@@ -80,37 +80,38 @@ export const mockPatients: Patient[] = [
     emergencyContact: {
       name: "Priya Sharma",
       relationship: "Spouse",
-      phone: "+91 98765 43211"
+      phone: "+91 98765 43211",
     },
     medicalHistory: [
       {
         condition: "Type 2 Diabetes",
         diagnosedDate: "2019-03-10",
         medications: ["Metformin", "Glimepiride"],
-        notes: "Well controlled with medication and diet"
-      }
+        notes: "Well controlled with medication and diet",
+      },
     ],
     allergies: [
       {
         allergen: "Penicillin",
         severity: "Moderate",
-        diagnosed: "2015-08-22"
-      }
+        diagnosed: "2015-08-22",
+      },
     ],
     vaccinations: [
       {
         name: "COVID-19",
         date: "2021-06-15",
-        provider: "City Hospital"
+        provider: "City Hospital",
       },
       {
         name: "Flu Shot",
         date: "2023-10-01",
-        dueDate: "2024-10-01"
-      }
+        dueDate: "2024-10-01",
+      },
     ],
     weight: 75,
     height: 175,
+    profileImage: "/patients/1.jpg",
     createdAt: "2023-01-15",
     lastVisit: "2024-02-20",
     bloodPressureHistory: [
@@ -120,7 +121,7 @@ export const mockPatients: Patient[] = [
       { date: "Wednesday", value: 130 },
       { date: "Thursday", value: 126 },
       { date: "Friday", value: 124 },
-      { date: "Saturday", value: 127 }
+      { date: "Saturday", value: 127 },
     ],
     recentBloodPressure: "126/82",
     highestBloodPressure: "130/85",
@@ -135,8 +136,8 @@ export const mockPatients: Patient[] = [
         date: "2024-03-25",
         htpiScore: 0.75,
         status: "upcoming",
-        paymentStatus: "pending"
-      }
+        paymentStatus: "pending",
+      },
     ],
     recentAppointments: [
       {
@@ -148,9 +149,9 @@ export const mockPatients: Patient[] = [
         date: "2024-02-20",
         htpiScore: 0.82,
         status: "finished",
-        paymentStatus: "completed"
-      }
-    ]
+        paymentStatus: "completed",
+      },
+    ],
   },
   {
     id: "P002",
@@ -164,37 +165,38 @@ export const mockPatients: Patient[] = [
     emergencyContact: {
       name: "Raj Patel",
       relationship: "Brother",
-      phone: "+91 87654 32108"
+      phone: "+91 87654 32108",
     },
     medicalHistory: [
       {
         condition: "Asthma",
         diagnosedDate: "2010-06-15",
         medications: ["Albuterol Inhaler"],
-        notes: "Mild asthma, triggered by dust and cold weather"
-      }
+        notes: "Mild asthma, triggered by dust and cold weather",
+      },
     ],
     allergies: [
       {
         allergen: "Dust Mites",
         severity: "Moderate",
-        diagnosed: "2010-06-15"
+        diagnosed: "2010-06-15",
       },
       {
         allergen: "Pollen",
         severity: "Mild",
-        diagnosed: "2010-06-15"
-      }
+        diagnosed: "2010-06-15",
+      },
     ],
     vaccinations: [
       {
         name: "COVID-19",
         date: "2021-07-01",
-        provider: "Apollo Hospital"
-      }
+        provider: "Apollo Hospital",
+      },
     ],
     weight: 58,
     height: 162,
+    profileImage: "/patients/2.jpg",
     createdAt: "2023-03-10",
     lastVisit: "2024-01-15",
     bloodPressureHistory: [
@@ -204,7 +206,7 @@ export const mockPatients: Patient[] = [
       { date: "Wednesday", value: 121 },
       { date: "Thursday", value: 118 },
       { date: "Friday", value: 120 },
-      { date: "Saturday", value: 119 }
+      { date: "Saturday", value: 119 },
     ],
     recentBloodPressure: "120/80",
     highestBloodPressure: "121/82",
@@ -219,8 +221,8 @@ export const mockPatients: Patient[] = [
         date: "2024-03-28",
         htpiScore: 0.68,
         status: "upcoming",
-        paymentStatus: "pending"
-      }
+        paymentStatus: "pending",
+      },
     ],
     recentAppointments: [
       {
@@ -232,9 +234,9 @@ export const mockPatients: Patient[] = [
         date: "2024-01-15",
         htpiScore: 0.71,
         status: "finished",
-        paymentStatus: "completed"
-      }
-    ]
+        paymentStatus: "completed",
+      },
+    ],
   },
   {
     id: "P003",
@@ -248,32 +250,33 @@ export const mockPatients: Patient[] = [
     emergencyContact: {
       name: "Neha Kumar",
       relationship: "Wife",
-      phone: "+91 98765 12346"
+      phone: "+91 98765 12346",
     },
     medicalHistory: [
       {
         condition: "Hypertension",
         diagnosedDate: "2020-05-15",
         medications: ["Amlodipine", "Telmisartan"],
-        notes: "Blood pressure under control with medication"
+        notes: "Blood pressure under control with medication",
       },
       {
         condition: "High Cholesterol",
         diagnosedDate: "2021-03-20",
         medications: ["Atorvastatin"],
-        notes: "Regular monitoring required"
-      }
+        notes: "Regular monitoring required",
+      },
     ],
     allergies: [],
     vaccinations: [
       {
         name: "COVID-19",
         date: "2021-06-30",
-        provider: "AIIMS Delhi"
-      }
+        provider: "AIIMS Delhi",
+      },
     ],
     weight: 82,
     height: 178,
+    profileImage: "/patients/3.jpg",
     createdAt: "2022-08-15",
     lastVisit: "2024-02-15",
     bloodPressureHistory: [
@@ -283,13 +286,13 @@ export const mockPatients: Patient[] = [
       { date: "Wednesday", value: 130 },
       { date: "Thursday", value: 134 },
       { date: "Friday", value: 129 },
-      { date: "Saturday", value: 131 }
+      { date: "Saturday", value: 131 },
     ],
     recentBloodPressure: "132/85",
     highestBloodPressure: "135/88",
     lowestBloodPressure: "128/82",
     appointments: [],
-    recentAppointments: []
+    recentAppointments: [],
   },
   {
     id: "P004",
@@ -303,32 +306,33 @@ export const mockPatients: Patient[] = [
     emergencyContact: {
       name: "Rajesh Patel",
       relationship: "Father",
-      phone: "+91 87654 98766"
+      phone: "+91 87654 98766",
     },
     medicalHistory: [
       {
         condition: "Migraine",
         diagnosedDate: "2019-08-12",
         medications: ["Sumatriptan"],
-        notes: "Triggered by stress and lack of sleep"
-      }
+        notes: "Triggered by stress and lack of sleep",
+      },
     ],
     allergies: [
       {
         allergen: "Shellfish",
         severity: "Severe",
-        diagnosed: "2018-05-10"
-      }
+        diagnosed: "2018-05-10",
+      },
     ],
     vaccinations: [
       {
         name: "COVID-19",
         date: "2021-07-15",
-        provider: "Lilavati Hospital"
-      }
+        provider: "Lilavati Hospital",
+      },
     ],
     weight: 55,
     height: 160,
+    profileImage: "/patients/4.jpg",
     createdAt: "2023-01-10",
     lastVisit: "2024-03-01",
     bloodPressureHistory: [
@@ -338,13 +342,13 @@ export const mockPatients: Patient[] = [
       { date: "Wednesday", value: 117 },
       { date: "Thursday", value: 121 },
       { date: "Friday", value: 118 },
-      { date: "Saturday", value: 120 }
+      { date: "Saturday", value: 120 },
     ],
     recentBloodPressure: "118/75",
     highestBloodPressure: "121/78",
     lowestBloodPressure: "117/72",
     appointments: [],
-    recentAppointments: []
+    recentAppointments: [],
   },
   {
     id: "P005",
@@ -358,32 +362,33 @@ export const mockPatients: Patient[] = [
     emergencyContact: {
       name: "Priya Singh",
       relationship: "Sister",
-      phone: "+91 76543 21099"
+      phone: "+91 76543 21099",
     },
     medicalHistory: [
       {
         condition: "Lower Back Pain",
         diagnosedDate: "2022-01-05",
         medications: ["Diclofenac", "Muscle Relaxants"],
-        notes: "Physiotherapy recommended"
-      }
+        notes: "Physiotherapy recommended",
+      },
     ],
     allergies: [
       {
         allergen: "Peanuts",
         severity: "Moderate",
-        diagnosed: "2010-03-15"
-      }
+        diagnosed: "2010-03-15",
+      },
     ],
     vaccinations: [
       {
         name: "COVID-19",
         date: "2021-08-01",
-        provider: "Manipal Hospital"
-      }
+        provider: "Manipal Hospital",
+      },
     ],
     weight: 75,
     height: 172,
+    profileImage: "/patients/5.jpg",
     createdAt: "2022-12-20",
     lastVisit: "2024-02-28",
     bloodPressureHistory: [
@@ -393,14 +398,14 @@ export const mockPatients: Patient[] = [
       { date: "Wednesday", value: 124 },
       { date: "Thursday", value: 127 },
       { date: "Friday", value: 125 },
-      { date: "Saturday", value: 126 }
+      { date: "Saturday", value: 126 },
     ],
     recentBloodPressure: "126/82",
     highestBloodPressure: "128/84",
     lowestBloodPressure: "124/80",
     appointments: [],
-    recentAppointments: []
-  }
+    recentAppointments: [],
+  },
 ];
 
 // Function to add a new patient to the mock data
@@ -411,7 +416,7 @@ export const addNewPatient = (patient: Patient) => {
 
 // Function to get a patient by ID
 export const getPatientById = (id: string): Patient | undefined => {
-  return mockPatients.find(patient => patient.id === id);
+  return mockPatients.find((patient) => patient.id === id);
 };
 
 // Function to get all patients
@@ -421,7 +426,7 @@ export const getAllPatients = (): Patient[] => {
 
 // Function to generate a new patient ID
 export const generatePatientId = (): string => {
-  const lastId = mockPatients[mockPatients.length - 1]?.id || 'P000';
+  const lastId = mockPatients[mockPatients.length - 1]?.id || "P000";
   const numericPart = parseInt(lastId.substring(1)) + 1;
-  return `P${numericPart.toString().padStart(3, '0')}`;
-}; 
+  return `P${numericPart.toString().padStart(3, "0")}`;
+};
