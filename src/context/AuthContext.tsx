@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Doctor, mockDoctors } from "../data/mockDoctors";
-import { Patient, mockPatients } from "../data/mockPatients";
+import {
+  Patient,
+  mockPatients,
+  addNewPatient,
+  generatePatientId,
+} from "../data/mockPatients";
 import { BlockchainService } from "../services/blockchainService";
 
 interface AuthContextType {
@@ -110,11 +115,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<boolean> => {
     try {
       // Create a new user object
-      const newUser = {
-        id: `${type[0].toUpperCase()}${Date.now()}`, // Generate a unique ID
-        ...userData,
-        createdAt: new Date().toISOString(),
-      };
+      let newUser;
+
+      if (type === "patient") {
+        // Generate a proper patient ID
+        const patientId = generatePatientId();
+
+        // Create a complete patient object with required fields
+        const newPatient: Patient = {
+          id: patientId,
+          name: userData.fullName,
+          email: userData.email,
+          phone: userData.phoneNumber || "",
+          dateOfBirth:
+            userData.dateOfBirth || new Date().toISOString().split("T")[0],
+          gender: userData.gender || "Other",
+          bloodGroup: userData.bloodGroup || "Unknown",
+          address: userData.address || "",
+          emergencyContact: {
+            name: userData.emergencyContactName || "Not provided",
+            relationship:
+              userData.emergencyContactRelationship || "Not provided",
+            phone: userData.emergencyContactPhone || "Not provided",
+          },
+          medicalHistory: [],
+          allergies: [],
+          vaccinations: [],
+          weight: userData.weight || 0,
+          height: userData.height || 0,
+          profileImage: userData.profileImage || "/placeholder.svg",
+          createdAt: new Date().toISOString(),
+          lastVisit: new Date().toISOString(),
+          bloodPressureHistory: [
+            { date: "Sunday", value: 120 },
+            { date: "Monday", value: 120 },
+            { date: "Tuesday", value: 120 },
+            { date: "Wednesday", value: 120 },
+            { date: "Thursday", value: 120 },
+            { date: "Friday", value: 120 },
+            { date: "Saturday", value: 120 },
+          ],
+          recentBloodPressure: "120/80",
+          highestBloodPressure: "120/80",
+          lowestBloodPressure: "120/80",
+          appointments: [],
+          recentAppointments: [],
+        };
+
+        // Add the new patient to the mockPatients array
+        addNewPatient(newPatient);
+
+        newUser = newPatient;
+        console.log("New patient added to doctor's directory:", newPatient);
+      } else {
+        // For doctor, just create a basic user object
+        newUser = {
+          id: `${type[0].toUpperCase()}${Date.now()}`, // Generate a unique ID
+          ...userData,
+          createdAt: new Date().toISOString(),
+        };
+      }
 
       // Set the current user
       const userState = { type, data: newUser };
