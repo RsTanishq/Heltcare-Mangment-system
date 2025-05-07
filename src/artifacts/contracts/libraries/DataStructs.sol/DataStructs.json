@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "DataStructs",
+  "sourceName": "contracts/libraries/DataStructs.sol",
+  "abi": [],
+  "bytecode": "0x60808060405234601757603a9081601d823930815050f35b600080fdfe600080fdfea264697066735822122066535db18cc78c1d9ad6af2856ac1b7474f3f5d2c57c9c44c19202f26643915264736f6c63430008130033",
+  "deployedBytecode": "0x600080fdfea264697066735822122066535db18cc78c1d9ad6af2856ac1b7474f3f5d2c57c9c44c19202f26643915264736f6c63430008130033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

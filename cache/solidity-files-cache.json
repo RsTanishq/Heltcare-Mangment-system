@@ -1,0 +1,40 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\Tanishq\\Desktop\\FINAL PROJECT\\healchain-data-vault\\contracts\\Healthcare.sol": {
+      "lastModificationDate": 1746092450840,
+      "contentHash": "689552acd01b558ba0181b5387fc16ec",
+      "sourceName": "contracts/Healthcare.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.0"
+      ],
+      "artifacts": [
+        "Healthcare"
+      ]
+    }
+  }
+}
