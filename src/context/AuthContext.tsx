@@ -34,6 +34,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     // Check for saved session
     const checkAuthState = async () => {
       try {
+        // TEMPORARY FIX: Always clear localStorage to force login page
+        localStorage.removeItem("currentUser");
+        localStorage.removeItem("rememberedCredentials");
+        localStorage.removeItem("doctorActiveTab");
+        localStorage.removeItem("doctorMedications");
+        localStorage.removeItem("doctorPatients");
+
+        // Original code (commented out for now)
+        /*
         const savedUser = localStorage.getItem("currentUser");
         if (savedUser) {
           const parsedUser = JSON.parse(savedUser);
@@ -71,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             localStorage.removeItem("currentUser");
           }
         }
+        */
       } catch (error) {
         console.error("Error restoring auth state:", error);
         localStorage.removeItem("currentUser");
