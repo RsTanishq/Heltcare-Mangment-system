@@ -190,7 +190,9 @@ const PatientAppointments = () => {
                         <span className="font-medium text-gray-600">
                           Doctor:
                         </span>
-                        <span>Dr. {selectedAppointment.doctorName}</span>
+                        <span>
+                          Dr. {selectedAppointment.doctorName || "Unknown"}
+                        </span>
                       </div>
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
                         <span className="font-medium text-gray-600">
