@@ -13,7 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import HTPIScoreDisplay from "@/components/algorithms/HTPIScoreDisplay";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card as UICard, CardHeader as UICardHeader, CardTitle as UICardTitle, CardContent as UICardContent } from "@/components/ui/card";
+import {
+  Card as UICard,
+  CardHeader as UICardHeader,
+  CardTitle as UICardTitle,
+  CardContent as UICardContent,
+} from "@/components/ui/card";
 import { CreditCard, UploadCloud } from "lucide-react";
 
 const PatientAppointments = () => {
@@ -28,7 +33,7 @@ const PatientAppointments = () => {
   }, [currentUser]);
 
   // Get appointments for current user
-  const appointments = currentUser?.data?.id 
+  const appointments = currentUser?.data?.id
     ? getPatientAppointments(currentUser.data.id)
     : [];
 
@@ -38,7 +43,7 @@ const PatientAppointments = () => {
 
   // Filter only upcoming and pending appointments
   const upcomingAppointments = appointments.filter(
-    app => app.status === 'accepted' || app.status === 'pending'
+    (app) => app.status === "accepted" || app.status === "pending"
   );
 
   useEffect(() => {
@@ -48,27 +53,33 @@ const PatientAppointments = () => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-lg font-medium">Upcoming Appointments</CardTitle>
+        <CardTitle className="text-lg font-medium">
+          Upcoming Appointments
+        </CardTitle>
         <Calendar className="h-4 w-4 text-muted-foreground" />
       </CardHeader>
       <CardContent>
         {upcomingAppointments.length > 0 ? (
           <div className="space-y-4">
             {upcomingAppointments.map((appointment) => (
-              <div 
+              <div
                 key={appointment.id}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
               >
                 <div>
-                  <p className="font-medium">Dr. {appointment.doctorName}</p>
+                  <p className="font-medium">
+                    Dr. {appointment.doctorName || "Unknown"}
+                  </p>
                   <p className="text-sm text-gray-500">
                     {appointment.date} at {appointment.time}
                   </p>
-                  <p className="text-xs text-gray-500">{appointment.condition}</p>
+                  <p className="text-xs text-gray-500">
+                    {appointment.condition}
+                  </p>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => {
                       setSelectedAppointment(appointment);
@@ -77,7 +88,7 @@ const PatientAppointments = () => {
                   >
                     View Details
                   </Button>
-                  {appointment.status === 'pending' && (
+                  {appointment.status === "pending" && (
                     <span className="text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
                       Awaiting Confirmation
                     </span>
@@ -97,41 +108,69 @@ const PatientAppointments = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b pb-4">
-            <DialogTitle className="text-2xl font-bold">Appointment Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              Appointment Details
+            </DialogTitle>
           </DialogHeader>
           {selectedAppointment && (
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="mb-6 flex flex-wrap gap-2 bg-gray-50 p-3 rounded-md">
-                <TabsTrigger value="overview" className="text-base">Overview</TabsTrigger>
-                <TabsTrigger value="mode" className="text-base">Payment Details</TabsTrigger>
-                <TabsTrigger value="files" className="text-base">Medical Records</TabsTrigger>
+                <TabsTrigger value="overview" className="text-base">
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="mode" className="text-base">
+                  Payment Details
+                </TabsTrigger>
+                <TabsTrigger value="files" className="text-base">
+                  Medical Records
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="overview">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <UICard className="shadow-sm">
                     <UICardHeader className="bg-gray-50 rounded-t-lg">
                       <UICardTitle className="flex items-center gap-2 text-lg">
-                        <CreditCard className="mr-2" size={20} /> Payment Information
+                        <CreditCard className="mr-2" size={20} /> Payment
+                        Information
                       </UICardTitle>
                     </UICardHeader>
                     <UICardContent className="space-y-4 pt-4">
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                        <span className="font-medium text-gray-600">Amount:</span>
-                        <span>₹{selectedAppointment.amount?.toLocaleString('en-IN') || '0'}</span>
+                        <span className="font-medium text-gray-600">
+                          Amount:
+                        </span>
+                        <span>
+                          ₹
+                          {selectedAppointment.amount?.toLocaleString(
+                            "en-IN"
+                          ) || "0"}
+                        </span>
                       </div>
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                        <span className="font-medium text-gray-600">Payment Type:</span>
+                        <span className="font-medium text-gray-600">
+                          Payment Type:
+                        </span>
                         <span>{selectedAppointment.paymentType || "-"}</span>
                       </div>
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                        <span className="font-medium text-gray-600">Status:</span>
-                        <span className={selectedAppointment.paymentStatus === 'completed' ? 'text-green-600' : 'text-yellow-600'}>
+                        <span className="font-medium text-gray-600">
+                          Status:
+                        </span>
+                        <span
+                          className={
+                            selectedAppointment.paymentStatus === "completed"
+                              ? "text-green-600"
+                              : "text-yellow-600"
+                          }
+                        >
                           {selectedAppointment.paymentStatus || "Pending"}
                         </span>
                       </div>
                       {selectedAppointment.transactionHash && (
                         <div className="mt-2 space-y-1">
-                          <span className="font-medium text-gray-600">Transaction Hash:</span>
+                          <span className="font-medium text-gray-600">
+                            Transaction Hash:
+                          </span>
                           <div className="font-mono text-xs break-all bg-gray-50 p-2 rounded-md">
                             {selectedAppointment.transactionHash}
                           </div>
@@ -142,42 +181,68 @@ const PatientAppointments = () => {
 
                   <UICard className="shadow-sm">
                     <UICardHeader className="bg-gray-50 rounded-t-lg">
-                      <UICardTitle className="text-lg">Appointment Info</UICardTitle>
+                      <UICardTitle className="text-lg">
+                        Appointment Info
+                      </UICardTitle>
                     </UICardHeader>
                     <UICardContent className="space-y-4 pt-4">
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                        <span className="font-medium text-gray-600">Doctor:</span>
+                        <span className="font-medium text-gray-600">
+                          Doctor:
+                        </span>
                         <span>Dr. {selectedAppointment.doctorName}</span>
                       </div>
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                        <span className="font-medium text-gray-600">Date & Time:</span>
-                        <span>{selectedAppointment.date} at {selectedAppointment.time}</span>
+                        <span className="font-medium text-gray-600">
+                          Date & Time:
+                        </span>
+                        <span>
+                          {selectedAppointment.date} at{" "}
+                          {selectedAppointment.time}
+                        </span>
                       </div>
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                        <span className="font-medium text-gray-600">Condition:</span>
+                        <span className="font-medium text-gray-600">
+                          Condition:
+                        </span>
                         <span>{selectedAppointment.condition}</span>
                       </div>
                       {selectedAppointment.urgency && (
                         <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                          <span className="font-medium text-gray-600">Urgency:</span>
-                          <span className={`capitalize ${
-                            selectedAppointment.urgency === 'high' ? 'text-red-600' :
-                            selectedAppointment.urgency === 'medium' ? 'text-yellow-600' : 'text-green-600'
-                          }`}>
+                          <span className="font-medium text-gray-600">
+                            Urgency:
+                          </span>
+                          <span
+                            className={`capitalize ${
+                              selectedAppointment.urgency === "high"
+                                ? "text-red-600"
+                                : selectedAppointment.urgency === "medium"
+                                ? "text-yellow-600"
+                                : "text-green-600"
+                            }`}
+                          >
                             {selectedAppointment.urgency}
                           </span>
                         </div>
                       )}
                       {selectedAppointment.visitMode && (
                         <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
-                          <span className="font-medium text-gray-600">Visit Mode:</span>
-                          <span className="capitalize">{selectedAppointment.visitMode}</span>
+                          <span className="font-medium text-gray-600">
+                            Visit Mode:
+                          </span>
+                          <span className="capitalize">
+                            {selectedAppointment.visitMode}
+                          </span>
                         </div>
                       )}
                       {selectedAppointment.symptoms && (
                         <div className="mt-2 space-y-1">
-                          <span className="font-medium text-gray-600">Symptoms:</span>
-                          <p className="text-sm bg-gray-50 p-2 rounded-md">{selectedAppointment.symptoms}</p>
+                          <span className="font-medium text-gray-600">
+                            Symptoms:
+                          </span>
+                          <p className="text-sm bg-gray-50 p-2 rounded-md">
+                            {selectedAppointment.symptoms}
+                          </p>
                         </div>
                       )}
                     </UICardContent>
@@ -187,7 +252,9 @@ const PatientAppointments = () => {
                 {selectedAppointment.htpiScore !== undefined && (
                   <UICard className="mb-6 shadow-sm">
                     <UICardHeader className="bg-gray-50 rounded-t-lg">
-                      <UICardTitle className="text-lg">HTPI Score Analysis</UICardTitle>
+                      <UICardTitle className="text-lg">
+                        HTPI Score Analysis
+                      </UICardTitle>
                     </UICardHeader>
                     <UICardContent className="pt-4">
                       <HTPIScoreDisplay score={selectedAppointment.htpiScore} />
@@ -206,25 +273,42 @@ const PatientAppointments = () => {
                   <UICardContent className="space-y-6 pt-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <h4 className="font-medium text-gray-600">Payment Method</h4>
-                        <p className="bg-gray-50 p-2 rounded-md">{selectedAppointment.paymentType || 'Not specified'}</p>
+                        <h4 className="font-medium text-gray-600">
+                          Payment Method
+                        </h4>
+                        <p className="bg-gray-50 p-2 rounded-md">
+                          {selectedAppointment.paymentType || "Not specified"}
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <h4 className="font-medium text-gray-600">Amount</h4>
-                        <p className="bg-gray-50 p-2 rounded-md">₹{selectedAppointment.amount?.toLocaleString('en-IN') || '0'}</p>
+                        <p className="bg-gray-50 p-2 rounded-md">
+                          ₹
+                          {selectedAppointment.amount?.toLocaleString(
+                            "en-IN"
+                          ) || "0"}
+                        </p>
                       </div>
                       <div className="space-y-2">
-                        <h4 className="font-medium text-gray-600">Payment Status</h4>
-                        <p className={`bg-gray-50 p-2 rounded-md ${
-                          selectedAppointment.paymentStatus === 'completed' ? 'text-green-600' : 'text-yellow-600'
-                        }`}>
-                          {selectedAppointment.paymentStatus || 'Pending'}
+                        <h4 className="font-medium text-gray-600">
+                          Payment Status
+                        </h4>
+                        <p
+                          className={`bg-gray-50 p-2 rounded-md ${
+                            selectedAppointment.paymentStatus === "completed"
+                              ? "text-green-600"
+                              : "text-yellow-600"
+                          }`}
+                        >
+                          {selectedAppointment.paymentStatus || "Pending"}
                         </p>
                       </div>
                     </div>
                     {selectedAppointment.transactionHash && (
                       <div className="space-y-2">
-                        <h4 className="font-medium text-gray-600">Transaction Details</h4>
+                        <h4 className="font-medium text-gray-600">
+                          Transaction Details
+                        </h4>
                         <div className="font-mono text-xs break-all bg-gray-50 p-3 rounded-md border">
                           {selectedAppointment.transactionHash}
                         </div>
@@ -273,7 +357,10 @@ function FileUploadSection({ appointmentId }) {
     // Simulate upload and IPFS hash
     setTimeout(() => {
       const fakeHash = `QmFakeHash${Math.random().toString(36).substr(2, 8)}`;
-      setUploadedFiles((prev) => [...prev, { name: file.name, hash: fakeHash }]);
+      setUploadedFiles((prev) => [
+        ...prev,
+        { name: file.name, hash: fakeHash },
+      ]);
       setUploading(false);
     }, 1500);
   };
@@ -282,10 +369,12 @@ function FileUploadSection({ appointmentId }) {
     <div className="space-y-6">
       <div className="space-y-4">
         <div className="flex flex-col space-y-2">
-          <label className="text-sm font-medium text-gray-600">Upload Medical Record</label>
-          <input 
-            type="file" 
-            onChange={handleFileChange} 
+          <label className="text-sm font-medium text-gray-600">
+            Upload Medical Record
+          </label>
+          <input
+            type="file"
+            onChange={handleFileChange}
             disabled={uploading}
             className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 file:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           />
@@ -307,7 +396,10 @@ function FileUploadSection({ appointmentId }) {
         ) : (
           <div className="space-y-2">
             {uploadedFiles.map((file, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-md">
+              <div
+                key={idx}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+              >
                 <div className="flex items-center space-x-3">
                   <span className="text-sm font-medium">{file.name}</span>
                 </div>
@@ -328,4 +420,4 @@ function FileUploadSection({ appointmentId }) {
   );
 }
 
-export default PatientAppointments; 
+export default PatientAppointments;
