@@ -311,15 +311,19 @@ const DoctorDocuments: React.FC = () => {
 
     try {
       setUploading(true);
+      console.log("Starting file upload process for:", file.name);
 
       // Create a new instance of BlockchainService
       const blockchainService = new BlockchainService();
 
       // Upload the file to IPFS via Pinata
+      console.log("Calling uploadDocumentToPinata with file:", file.name);
       const result = await blockchainService.uploadDocumentToPinata(file, {
         doctorId: "current-doctor-id", // In a real app, get this from auth context
         documentType: file.type,
       });
+
+      console.log("Pinata upload result:", result); // Add logging to debug
 
       if (result.success && result.hash && result.url) {
         // Generate a unique ID for the document
@@ -332,18 +336,42 @@ const DoctorDocuments: React.FC = () => {
           type: "file",
           format: result.format as "pdf" | "image" | "spreadsheet" | "document",
           size: result.size || `${Math.round(file.size / 1024)} KB`,
-          lastModified: new Date().toISOString(),
+          lastModified: new Date().toISOString().split("T")[0], // Format as YYYY-MM-DD
           starred: false,
           path: [...currentPath],
           content: result.url,
         };
 
+        console.log("Created new document object:", newDocument);
+
         // Add the new document to the documents array
-        setDocuments([...documents, newDocument]);
+        setDocuments((prevDocs) => {
+          const updatedDocs = [...prevDocs, newDocument];
+          console.log("Updated documents array:", updatedDocs);
+          return updatedDocs;
+        });
+
+        // Open the Pinata URL in a new tab to verify the upload
+        window.open(result.url, "_blank");
 
         toast({
           title: "Upload Successful",
-          description: `${file.name} has been uploaded to IPFS.`,
+          description: (
+            <div>
+              <p>{file.name} has been uploaded to IPFS.</p>
+              <p>Hash: {result.hash.substring(0, 10)}...</p>
+              <p>
+                <a
+                  href={result.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline text-blue-600"
+                >
+                  View on IPFS Gateway
+                </a>
+              </p>
+            </div>
+          ),
         });
       } else {
         throw new Error(result.error || "Upload failed");
@@ -442,58 +470,66 @@ const DoctorDocuments: React.FC = () => {
 
         {viewMode === "grid" ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredDocuments.map((doc: Document) => (
-              <div
-                key={doc.id}
-                className="bg-white border rounded-md p-3 flex flex-col hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => handleDocumentClick(doc)}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-shrink-0">{getDocumentIcon(doc)}</div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e: React.MouseEvent) => {
-                      e.stopPropagation();
-                      toggleStar(doc.id);
-                    }}
-                  >
-                    <Star
-                      className={`h-4 w-4 ${
-                        doc.starred ? "fill-yellow-400 text-yellow-400" : ""
-                      }`}
-                    />
-                  </Button>
-                </div>
-
-                <h3 className="font-medium truncate mb-1" title={doc.name}>
-                  {doc.name}
-                </h3>
-
-                {doc.type === "email" && (
-                  <p
-                    className="text-xs text-gray-500 truncate mb-1"
-                    title={doc.from}
-                  >
-                    From: {doc.from}
-                  </p>
-                )}
-
-                <div className="flex justify-between mt-auto pt-2">
-                  <p className="text-xs text-gray-500">
-                    {doc.type === "email"
-                      ? "Email"
-                      : doc.type === "folder"
-                      ? "Folder"
-                      : doc.size}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(doc.lastModified).toLocaleDateString()}
-                  </p>
-                </div>
+            {filteredDocuments.length === 0 ? (
+              <div className="col-span-full py-10 text-center">
+                <p className="text-gray-500">
+                  No documents found matching "{searchTerm}"
+                </p>
               </div>
-            ))}
+            ) : (
+              filteredDocuments.map((doc: Document) => (
+                <div
+                  key={doc.id}
+                  className="bg-white border rounded-md p-3 flex flex-col hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleDocumentClick(doc)}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-shrink-0">{getDocumentIcon(doc)}</div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        toggleStar(doc.id);
+                      }}
+                    >
+                      <Star
+                        className={`h-4 w-4 ${
+                          doc.starred ? "fill-yellow-400 text-yellow-400" : ""
+                        }`}
+                      />
+                    </Button>
+                  </div>
+
+                  <h3 className="font-medium truncate mb-1" title={doc.name}>
+                    {doc.name}
+                  </h3>
+
+                  {doc.type === "email" && (
+                    <p
+                      className="text-xs text-gray-500 truncate mb-1"
+                      title={doc.from}
+                    >
+                      From: {doc.from}
+                    </p>
+                  )}
+
+                  <div className="flex justify-between mt-auto pt-2">
+                    <p className="text-xs text-gray-500">
+                      {doc.type === "email"
+                        ? "Email"
+                        : doc.type === "folder"
+                        ? "Folder"
+                        : doc.size}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(doc.lastModified).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         ) : (
           <div className="rounded-md border">
@@ -508,102 +544,104 @@ const DoctorDocuments: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {filteredDocuments.map((doc: Document) => (
-                  <tr
-                    key={doc.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => handleDocumentClick(doc)}
-                  >
-                    <td className="p-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-shrink-0">
-                          {getDocumentIcon(doc)}
-                        </div>
-                        <div>
-                          <p className="font-medium">{doc.name}</p>
-                          {doc.type === "email" && (
-                            <p className="text-xs text-gray-500">
-                              {doc.subject}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
-                        {doc.type === "email"
-                          ? "Email"
-                          : doc.type === "folder"
-                          ? "Folder"
-                          : doc.format}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-gray-500">{doc.size || "-"}</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="text-gray-500">
-                        {new Date(doc.lastModified).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex justify-end items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            toggleStar(doc.id);
-                          }}
-                        >
-                          <Star
-                            className={`h-4 w-4 ${
-                              doc.starred
-                                ? "fill-yellow-400 text-yellow-400"
-                                : ""
-                            }`}
-                          />
-                        </Button>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            asChild
-                            onClick={(e: React.MouseEvent) =>
-                              e.stopPropagation()
-                            }
-                          >
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="flex items-center gap-2">
-                              <Download className="h-4 w-4" /> Download
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-2">
-                              <Share2 className="h-4 w-4" /> Share
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                {filteredDocuments.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-10 text-center">
+                      <p className="text-gray-500">
+                        No documents found matching "{searchTerm}"
+                      </p>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filteredDocuments.map((doc: Document) => (
+                    <tr
+                      key={doc.id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleDocumentClick(doc)}
+                    >
+                      <td className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            {getDocumentIcon(doc)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{doc.name}</p>
+                            {doc.type === "email" && (
+                              <p className="text-xs text-gray-500">
+                                {doc.subject}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
+                          {doc.type === "email"
+                            ? "Email"
+                            : doc.type === "folder"
+                            ? "Folder"
+                            : doc.format}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-gray-500">{doc.size || "-"}</span>
+                      </td>
+                      <td className="p-3">
+                        <span className="text-gray-500">
+                          {new Date(doc.lastModified).toLocaleDateString()}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex justify-end items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e: React.MouseEvent) => {
+                              e.stopPropagation();
+                              toggleStar(doc.id);
+                            }}
+                          >
+                            <Star
+                              className={`h-4 w-4 ${
+                                doc.starred
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : ""
+                              }`}
+                            />
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              asChild
+                              onClick={(e: React.MouseEvent) =>
+                                e.stopPropagation()
+                              }
+                            >
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem className="flex items-center gap-2">
+                                <Download className="h-4 w-4" /> Download
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="flex items-center gap-2">
+                                <Share2 className="h-4 w-4" /> Share
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
-
-            {filteredDocuments.length === 0 && (
-              <div className="py-10 text-center">
-                <p className="text-gray-500">
-                  No documents found matching "{searchTerm}"
-                </p>
-              </div>
-            )}
           </div>
         )}
       </CardContent>

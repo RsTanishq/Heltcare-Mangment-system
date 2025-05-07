@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,78 +15,116 @@ import { BlockchainService } from "../services/blockchainService";
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { connect, isConnected, account } = useMetaMask();
-  const { login } = useAuth();
-  
+  const { login, currentUser } = useAuth();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [walletLoading, setWalletLoading] = useState(false);
   const [error, setError] = useState("");
-  const [blockchainService, setBlockchainService] = useState<BlockchainService | null>(null);
-  
+  const [blockchainService, setBlockchainService] =
+    useState<BlockchainService | null>(null);
+
   const clearRememberedCredentials = () => {
-    localStorage.removeItem('rememberedCredentials');
-    setEmail('');
-    setPassword('');
+    localStorage.removeItem("rememberedCredentials");
+    setEmail("");
+    setPassword("");
     setRememberMe(false);
   };
-  
+
+  // Check if user is already authenticated and redirect accordingly
+  useEffect(() => {
+    if (currentUser && currentUser.type) {
+      // User is already logged in, redirect to appropriate dashboard
+      const from = location.state?.from?.pathname;
+
+      if (from) {
+        // If they were redirected to login from another page, send them back
+        navigate(from);
+      } else {
+        // Otherwise, redirect to the appropriate dashboard
+        switch (currentUser.type) {
+          case "patient":
+            navigate("/dashboard");
+            break;
+          case "doctor":
+            navigate("/doctor-dashboard");
+            break;
+          case "admin":
+            navigate("/admin-dashboard");
+            break;
+        }
+      }
+    }
+  }, [currentUser, navigate, location]);
+
   useEffect(() => {
     // Check if user just logged out (you can set this flag when logging out)
-    const justLoggedOut = localStorage.getItem('justLoggedOut');
+    const justLoggedOut = localStorage.getItem("justLoggedOut");
     if (justLoggedOut) {
       clearRememberedCredentials();
-      localStorage.removeItem('justLoggedOut');
+      localStorage.removeItem("justLoggedOut");
       return;
     }
 
     // Only load remembered credentials if not just logged out
-    const savedCredentials = localStorage.getItem('rememberedCredentials');
+    const savedCredentials = localStorage.getItem("rememberedCredentials");
     if (savedCredentials) {
-      const { email: savedEmail, password: savedPassword, type: savedType } = JSON.parse(savedCredentials);
-      setEmail(savedEmail);
-      setPassword(savedPassword);
-      setRememberMe(true);
+      try {
+        const {
+          email: savedEmail,
+          password: savedPassword,
+          type: savedType,
+        } = JSON.parse(savedCredentials);
+        setEmail(savedEmail);
+        setPassword(savedPassword);
+        setRememberMe(true);
+      } catch (error) {
+        console.error("Error parsing saved credentials:", error);
+        localStorage.removeItem("rememberedCredentials");
+      }
     }
   }, []);
-  
+
   useEffect(() => {
     try {
       const service = new BlockchainService();
       setBlockchainService(service);
     } catch (err) {
-      setError('Please install MetaMask to use this application');
+      setError("Please install MetaMask to use this application");
     }
   }, []);
-  
+
   const handleWalletLogin = async () => {
     setWalletLoading(true);
     try {
       if (!blockchainService) {
-        throw new Error('Blockchain service not initialized');
+        throw new Error("Blockchain service not initialized");
       }
 
       // Connect wallet
       const address = await blockchainService.connectWallet();
-      console.log('Connected wallet address:', address);
+      console.log("Connected wallet address:", address);
 
       // Verify user registration
-      const { isRegistered, details } = await blockchainService.verifyUserRegistration(address);
-      
+      const { isRegistered, details } =
+        await blockchainService.verifyUserRegistration(address);
+
       if (!isRegistered) {
-        throw new Error('User not registered in the blockchain');
+        throw new Error("User not registered in the blockchain");
       }
 
       // Get user role from blockchain
-      const userRole = details.role.toLowerCase() as 'patient' | 'doctor';
+      const userRole = details.role.toLowerCase() as "patient" | "doctor";
 
       // Create a wallet-based login
       const success = await login(
         `${address.toLowerCase()}@wallet.eth`,
-        'test@123',
+        "test@123",
         userRole,
         address
       );
@@ -96,18 +134,18 @@ const LoginPage = () => {
           title: "Success!",
           description: `Connected wallet: ${address.substring(0, 8)}...`,
         });
-        
+
         // Navigate based on role
-        if (userRole === 'doctor') {
+        if (userRole === "doctor") {
           navigate("/doctor-dashboard");
         } else {
           navigate("/dashboard");
         }
       } else {
-        throw new Error('Login session creation failed');
+        throw new Error("Login session creation failed");
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       toast({
         title: "Login Failed",
         description: error.message || "Could not connect to MetaMask",
@@ -117,8 +155,11 @@ const LoginPage = () => {
       setWalletLoading(false);
     }
   };
-  
-  const handleLogin = async (role: "patient" | "doctor" | "admin", isAutoLogin: boolean = false) => {
+
+  const handleLogin = async (
+    role: "patient" | "doctor" | "admin",
+    isAutoLogin: boolean = false
+  ) => {
     if (!email || !password) {
       toast({
         title: "Error",
@@ -127,38 +168,47 @@ const LoginPage = () => {
       });
       return;
     }
-    
+
     if (!isAutoLogin) {
       setLoading(true);
     }
-    
+
     try {
       const success = await login(email, password, role);
       if (success) {
         // Save credentials if remember me is checked
         if (rememberMe) {
-          localStorage.setItem('rememberedCredentials', JSON.stringify({
-            email,
-            password,
-            type: role
-          }));
+          localStorage.setItem(
+            "rememberedCredentials",
+            JSON.stringify({
+              email,
+              password,
+              type: role,
+            })
+          );
         } else {
-          localStorage.removeItem('rememberedCredentials');
+          localStorage.removeItem("rememberedCredentials");
         }
 
         toast({
           title: "Success!",
           description: `Logged in as ${role}`,
         });
-        
+
         // Verify the wallet address on the blockchain
         if (role === "patient") {
-          const patientId = await blockchainService.contract.GET_PATIENT_ID(account);
-          const patientDetails = await blockchainService.contract.GET_PATIENT_DETAILS(patientId);
+          const patientId = await blockchainService.contract.GET_PATIENT_ID(
+            account
+          );
+          const patientDetails =
+            await blockchainService.contract.GET_PATIENT_DETAILS(patientId);
           // Store patient details in context/state management
         } else if (role === "doctor") {
-          const doctorId = await blockchainService.contract.GET_DOCTOR_ID(account);
-          const doctorDetails = await blockchainService.contract.GET_DOCTOR_DETAILS(doctorId);
+          const doctorId = await blockchainService.contract.GET_DOCTOR_ID(
+            account
+          );
+          const doctorDetails =
+            await blockchainService.contract.GET_DOCTOR_DETAILS(doctorId);
           // Verify if doctor is approved
           if (!doctorDetails.isApproved) {
             throw new Error("Doctor account is pending approval");
@@ -181,12 +231,13 @@ const LoginPage = () => {
       } else {
         toast({
           title: "Error",
-          description: "Invalid email or password. Default password is test@123",
+          description:
+            "Invalid email or password. Default password is test@123",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: "Failed to login. Please check your wallet address.",
@@ -198,16 +249,21 @@ const LoginPage = () => {
       }
     }
   };
-  
+
   const renderLoginForm = (role: "patient" | "doctor" | "admin") => (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label htmlFor={`email-${role}`} className="text-sm font-medium">Email</label>
+        <label htmlFor={`email-${role}`} className="text-sm font-medium">
+          Email
+        </label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input 
+          <Mail
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={18}
+          />
+          <Input
             id={`email-${role}`}
-            type="email" 
+            type="email"
             placeholder={`${role}@example.com`}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -216,23 +272,28 @@ const LoginPage = () => {
         </div>
       </div>
       <div className="space-y-2">
-        <label htmlFor={`password-${role}`} className="text-sm font-medium">Password</label>
+        <label htmlFor={`password-${role}`} className="text-sm font-medium">
+          Password
+        </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-          <Input 
+          <Lock
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            size={18}
+          />
+          <Input
             id={`password-${role}`}
-            type="password" 
-            placeholder="••••••••" 
+            type="password"
+            placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="pl-10"
           />
         </div>
       </div>
-      
+
       <div className="flex items-center space-x-2">
-        <Checkbox 
-          id={`remember-${role}`} 
+        <Checkbox
+          id={`remember-${role}`}
           checked={rememberMe}
           onCheckedChange={(checked) => setRememberMe(checked as boolean)}
         />
@@ -244,8 +305,8 @@ const LoginPage = () => {
         </label>
       </div>
 
-      <Button 
-        className="w-full" 
+      <Button
+        className="w-full"
         onClick={() => handleLogin(role)}
         disabled={loading}
       >
@@ -263,17 +324,17 @@ const LoginPage = () => {
               <span className="bg-white px-2 text-gray-500">or</span>
             </div>
           </div>
-          
-          <Button 
-            variant="outline" 
+
+          <Button
+            variant="outline"
             className="w-full flex items-center justify-center gap-2"
             onClick={handleWalletLogin}
             disabled={walletLoading}
           >
-            <img 
-              src="https://cdn.iconscout.com/icon/free/png-256/free-metamask-2728406-2261817.png" 
-              alt="MetaMask" 
-              className="h-5 w-5" 
+            <img
+              src="https://cdn.iconscout.com/icon/free/png-256/free-metamask-2728406-2261817.png"
+              alt="MetaMask"
+              className="h-5 w-5"
             />
             {walletLoading ? "Connecting..." : "Login with MetaMask"}
           </Button>
@@ -281,7 +342,7 @@ const LoginPage = () => {
       )}
     </div>
   );
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
@@ -289,17 +350,17 @@ const LoginPage = () => {
           <h1 className="text-3xl font-bold text-blue-600">HOSCARE</h1>
           <p className="text-gray-600 mt-2">Blockchain Healthcare System</p>
         </div>
-        
+
         <Tabs defaultValue="patient" className="w-full">
           <TabsList className="grid grid-cols-3 w-full mb-8">
             <TabsTrigger value="patient">Patient</TabsTrigger>
             <TabsTrigger value="doctor">Doctor</TabsTrigger>
             <TabsTrigger value="admin">Admin</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="patient">
             {renderLoginForm("patient")}
-            
+
             <div className="text-center mt-4">
               <p className="text-sm text-gray-600">
                 Don't have an account?{" "}
@@ -309,16 +370,12 @@ const LoginPage = () => {
               </p>
             </div>
           </TabsContent>
-          
-          <TabsContent value="doctor">
-            {renderLoginForm("doctor")}
-          </TabsContent>
-          
-          <TabsContent value="admin">
-            {renderLoginForm("admin")}
-          </TabsContent>
+
+          <TabsContent value="doctor">{renderLoginForm("doctor")}</TabsContent>
+
+          <TabsContent value="admin">{renderLoginForm("admin")}</TabsContent>
         </Tabs>
-        
+
         <div className="mt-6 text-center text-xs text-gray-500">
           <p>Secured by blockchain technology</p>
         </div>

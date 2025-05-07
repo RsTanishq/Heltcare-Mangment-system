@@ -43,6 +43,18 @@ export class BlockchainService {
     // Use Vite's environment variables for Pinata
     this.pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
     this.pinataSecretKey = import.meta.env.VITE_PINATA_SECRET_KEY;
+
+    // Log environment variables (masked for security)
+    console.log("Environment variables loaded:");
+    console.log("- Contract Address available:", !!contractAddress);
+    console.log("- Pinata API Key available:", !!this.pinataApiKey);
+    console.log("- Pinata Secret Key available:", !!this.pinataSecretKey);
+
+    if (!this.pinataApiKey || !this.pinataSecretKey) {
+      console.warn(
+        "WARNING: Pinata API keys are missing or invalid. File uploads will fail."
+      );
+    }
   }
 
   async connectWallet() {
@@ -167,6 +179,15 @@ export class BlockchainService {
     error?: string;
   }> {
     try {
+      // Log API keys (masked for security)
+      console.log("Pinata API Key available:", !!this.pinataApiKey);
+      console.log("Pinata Secret Key available:", !!this.pinataSecretKey);
+      console.log("File details:", {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+      });
+
       // Create FormData
       const formData = new FormData();
       formData.append("file", file);
@@ -190,18 +211,32 @@ export class BlockchainService {
       });
       formData.append("pinataOptions", options);
 
+      console.log("Sending request to Pinata...");
+
+      // Make sure we're using the correct API keys from environment variables
+      const pinataApiKey = import.meta.env.VITE_PINATA_API_KEY;
+      const pinataSecretKey = import.meta.env.VITE_PINATA_SECRET_KEY;
+
+      if (!pinataApiKey || !pinataSecretKey) {
+        throw new Error(
+          "Pinata API keys are missing from environment variables"
+        );
+      }
+
       const response = await axios.post(
         "https://api.pinata.cloud/pinning/pinFileToIPFS",
         formData,
         {
           maxBodyLength: Infinity, // Required for large files
           headers: {
-            "Content-Type": `multipart/form-data; boundary=${formData._boundary}`,
-            pinata_api_key: this.pinataApiKey,
-            pinata_secret_api_key: this.pinataSecretKey,
+            "Content-Type": `multipart/form-data`,
+            pinata_api_key: pinataApiKey,
+            pinata_secret_api_key: pinataSecretKey,
           },
         }
       );
+
+      console.log("Pinata response:", response.data);
 
       if (response.data.IpfsHash) {
         // Format file size for display
@@ -229,7 +264,7 @@ export class BlockchainService {
           else return "document";
         };
 
-        return {
+        const result = {
           success: true,
           hash: response.data.IpfsHash,
           url: `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`,
@@ -237,6 +272,9 @@ export class BlockchainService {
           size: formatFileSize(file.size),
           format: getDocumentFormat(file.type),
         };
+
+        console.log("Upload successful, returning result:", result);
+        return result;
       } else {
         throw new Error("No IPFS hash received from Pinata");
       }
@@ -245,6 +283,14 @@ export class BlockchainService {
         "Error uploading document to Pinata:",
         error.response?.data || error.message
       );
+
+      // More detailed error logging
+      if (error.response) {
+        console.error("Response status:", error.response.status);
+        console.error("Response headers:", error.response.headers);
+        console.error("Response data:", error.response.data);
+      }
+
       return {
         success: false,
         error:

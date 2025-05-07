@@ -1,77 +1,150 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Doctor, mockDoctors } from '../data/mockDoctors';
-import { Patient, mockPatients } from '../data/mockPatients';
-import { BlockchainService } from '../services/blockchainService';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { Doctor, mockDoctors } from "../data/mockDoctors";
+import { Patient, mockPatients } from "../data/mockPatients";
+import { BlockchainService } from "../services/blockchainService";
 
 interface AuthContextType {
   currentUser: {
-    type: 'doctor' | 'patient' | 'admin' | null;
+    type: "doctor" | "patient" | "admin" | null;
     data: Doctor | Patient | null;
   };
-  login: (email: string, password: string, type: 'doctor' | 'patient' | 'admin', walletAddress?: string) => Promise<boolean>;
-  signup: (userData: any, type: 'doctor' | 'patient') => Promise<boolean>;
+  login: (
+    email: string,
+    password: string,
+    type: "doctor" | "patient" | "admin",
+    walletAddress?: string
+  ) => Promise<boolean>;
+  signup: (userData: any, type: "doctor" | "patient") => Promise<boolean>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<AuthContextType['currentUser']>({
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [currentUser, setCurrentUser] = useState<
+    AuthContextType["currentUser"]
+  >({
     type: null,
-    data: null
+    data: null,
   });
 
   useEffect(() => {
     // Check for saved session
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
+    const checkAuthState = async () => {
+      try {
+        const savedUser = localStorage.getItem("currentUser");
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+
+          // Validate the saved user data
+          if (parsedUser && parsedUser.type && parsedUser.data) {
+            console.log(
+              "Restoring auth state from localStorage:",
+              parsedUser.type
+            );
+            setCurrentUser(parsedUser);
+
+            // If using MetaMask, verify the wallet is still connected
+            if (window.ethereum && parsedUser.data.walletAddress) {
+              try {
+                // Get current connected accounts
+                const accounts = await window.ethereum.request({
+                  method: "eth_accounts",
+                });
+
+                // If wallet is disconnected but we have a saved session with wallet
+                if (
+                  (!accounts || accounts.length === 0) &&
+                  parsedUser.data.walletAddress
+                ) {
+                  console.warn("Wallet disconnected but session exists");
+                  // We'll keep the session for now, but could handle this differently
+                }
+              } catch (error) {
+                console.error("Error checking wallet connection:", error);
+              }
+            }
+          } else {
+            // Invalid saved user data
+            localStorage.removeItem("currentUser");
+          }
+        }
+      } catch (error) {
+        console.error("Error restoring auth state:", error);
+        localStorage.removeItem("currentUser");
+      }
+    };
+
+    checkAuthState();
+
+    // Listen for storage events (for multi-tab support)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "currentUser") {
+        if (e.newValue) {
+          setCurrentUser(JSON.parse(e.newValue));
+        } else {
+          setCurrentUser({ type: null, data: null });
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const signup = async (userData: any, type: 'doctor' | 'patient'): Promise<boolean> => {
+  const signup = async (
+    userData: any,
+    type: "doctor" | "patient"
+  ): Promise<boolean> => {
     try {
       // Create a new user object
       const newUser = {
         id: `${type[0].toUpperCase()}${Date.now()}`, // Generate a unique ID
         ...userData,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
 
       // Set the current user
       const userState = { type, data: newUser };
       setCurrentUser(userState);
-      localStorage.setItem('currentUser', JSON.stringify(userState));
-      
+      localStorage.setItem("currentUser", JSON.stringify(userState));
+
       return true;
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error("Signup error:", error);
       return false;
     }
   };
 
   const login = async (
-    email: string, 
-    password: string, 
-    type: 'doctor' | 'patient' | 'admin',
+    email: string,
+    password: string,
+    type: "doctor" | "patient" | "admin",
     walletAddress?: string
   ): Promise<boolean> => {
     try {
+      console.log(
+        `Attempting login as ${type}${walletAddress ? " with wallet" : ""}`
+      );
+
       // Initialize blockchain service
       const blockchainService = new BlockchainService();
-      
+
       // For wallet-based login
       if (walletAddress) {
         // Verify user registration on blockchain
-        const { isRegistered, details } = await blockchainService.verifyUserRegistration(walletAddress);
-        
+        const { isRegistered, details } =
+          await blockchainService.verifyUserRegistration(walletAddress);
+
         if (!isRegistered) {
-          throw new Error('User not registered in the blockchain');
+          throw new Error("User not registered in the blockchain");
         }
 
         // Get user data from IPFS
         const userData = await blockchainService.getUserData(walletAddress);
-        
+
         if (!userData || details.role !== type) {
           throw new Error(`Not registered as a ${type}`);
         }
@@ -83,19 +156,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             ...userData,
             id: walletAddress.toLowerCase(), // Use wallet address as ID
             walletAddress: walletAddress.toLowerCase(),
-          }
+            lastLogin: new Date().toISOString(), // Add login timestamp
+          },
         };
-        
+
+        // Update state and persist to localStorage
         setCurrentUser(userState);
-        localStorage.setItem('currentUser', JSON.stringify(userState));
+        localStorage.setItem("currentUser", JSON.stringify(userState));
+        console.log(`Successfully logged in as ${type} with wallet`);
+        return true;
+      }
+
+      // For demo/testing purposes, you could implement a mock login here
+      // This would allow login without MetaMask for development
+      if (
+        process.env.NODE_ENV === "development" &&
+        email === "demo@example.com" &&
+        password === "demo123"
+      ) {
+        const mockUserData = {
+          id: `demo-${type}-${Date.now()}`,
+          name: `Demo ${type.charAt(0).toUpperCase() + type.slice(1)}`,
+          email: email,
+          // Add other required fields based on your user model
+        };
+
+        const userState = { type, data: mockUserData };
+        setCurrentUser(userState);
+        localStorage.setItem("currentUser", JSON.stringify(userState));
+        console.log(`Successfully logged in as demo ${type}`);
         return true;
       }
 
       // Regular email/password login is not supported anymore
       // All logins must be through wallet
-      throw new Error('Please use wallet login');
+      throw new Error("Please use wallet login");
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       return false;
     }
   };
@@ -104,25 +201,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       // Clear user data from context
       setCurrentUser({ type: null, data: null });
-      
+
       // Clear all stored data
-      localStorage.removeItem('currentUser');
-      localStorage.removeItem('rememberedCredentials');
-      localStorage.setItem('justLoggedOut', 'true');
-      
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("rememberedCredentials");
+      localStorage.removeItem("doctorActiveTab"); // Clear any saved tabs
+      localStorage.setItem("justLoggedOut", "true");
+
       // If using blockchain service, disconnect wallet
       if (window.ethereum) {
         try {
           const blockchainService = new BlockchainService();
           await blockchainService.disconnectWallet();
         } catch (error) {
-          console.error('Error disconnecting wallet:', error);
+          console.error("Error disconnecting wallet:", error);
         }
       }
 
+      // Clear any session storage items that might contain sensitive data
+      sessionStorage.clear();
+
+      console.log("User logged out successfully");
       return true;
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
       throw error;
     }
   };
@@ -137,7 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}; 
+};

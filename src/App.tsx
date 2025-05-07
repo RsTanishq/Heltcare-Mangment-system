@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
@@ -29,28 +30,179 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* Public routes */}
             <Route path="/" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/dashboard" element={<Dashboard role="patient" />} />
-            <Route path="/patient-dashboard" element={<PatientDashboard />} />
-            <Route path="/doctor-dashboard" element={<DoctorDashboard />} />
-            <Route path="/admin-dashboard" element={<Dashboard role="admin" />} />
-            <Route path="/admin/doctors" element={<Dashboard role="admin" />} />
-            <Route path="/admin/patients" element={<Dashboard role="admin" />} />
-            <Route path="/admin/appointments" element={<Dashboard role="admin" content={<AdminAppointments />} />} />
-            <Route path="/admin/medical-records" element={<Dashboard role="admin" />} />
-            <Route path="/admin/messages" element={<Dashboard role="admin" />} />
-            <Route path="/admin/pharmacy" element={<Dashboard role="admin" />} />
-            <Route path="/admin/analytics" element={<Dashboard role="admin" />} />
-            <Route path="/admin/help" element={<Dashboard role="admin" />} />
-            <Route path="/admin/settings" element={<Dashboard role="admin" />} />
-            <Route path="/medical-records" element={<MedicalRecords role="patient" />} />
-            <Route path="/doctor-records" element={<MedicalRecords role="doctor" />} />
-            <Route path="/doctors" element={<Doctors />} />
-            <Route path="/chat" element={<ChatBox />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/shop" element={<Shop />} />
-            <Route path="/wallet" element={<Wallet />} />
+
+            {/* Patient routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["patient"]}>
+                  <Dashboard role="patient" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/patient-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["patient"]}>
+                  <PatientDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/medical-records"
+              element={
+                <ProtectedRoute allowedRoles={["patient"]}>
+                  <MedicalRecords role="patient" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/doctors"
+              element={
+                <ProtectedRoute allowedRoles={["patient"]}>
+                  <Doctors />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Doctor routes */}
+            <Route
+              path="/doctor-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["doctor"]}>
+                  <DoctorDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/doctor-records"
+              element={
+                <ProtectedRoute allowedRoles={["doctor"]}>
+                  <MedicalRecords role="doctor" />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Admin routes */}
+            <Route
+              path="/admin-dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/doctors"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/patients"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/appointments"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" content={<AdminAppointments />} />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/medical-records"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/messages"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/pharmacy"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/analytics"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/help"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Dashboard role="admin" />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Shared routes (accessible by any authenticated user) */}
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <ChatBox />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/shop"
+              element={
+                <ProtectedRoute>
+                  <Shop />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/wallet"
+              element={
+                <ProtectedRoute>
+                  <Wallet />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Fallback route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
