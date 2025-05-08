@@ -87,8 +87,14 @@ export class BlockchainService {
     try {
       const signer = await this.provider.getSigner();
       const contractWithSigner = this.contract.connect(signer);
-      const tx = await contractWithSigner.registerUser(name, role, ipfsHash);
+
+      // Always include the registration fee
+      const tx = await contractWithSigner.registerUser(name, role, ipfsHash, {
+        value: this.REGISTRATION_FEE,
+      });
+
       await tx.wait();
+      console.log("Registration transaction successful:", tx.hash);
       return tx.hash;
     } catch (error) {
       console.error("Error registering user:", error);
@@ -309,6 +315,7 @@ export class BlockchainService {
     walletAddress: string;
     phoneNumber: string;
     gender?: "Male" | "Female" | "Other";
+    age?: string;
     profileImage?: File;
   }) {
     try {
@@ -326,6 +333,7 @@ export class BlockchainService {
         email: patientData.email,
         phoneNumber: patientData.phoneNumber,
         gender: patientData.gender || "Male", // Include gender
+        age: patientData.age || "", // Include age
         profileImage: profileImageUrl,
         createdAt: new Date().toISOString(),
       });

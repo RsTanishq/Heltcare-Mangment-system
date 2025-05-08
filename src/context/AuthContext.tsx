@@ -127,12 +127,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       let newUser: Doctor | Patient;
 
       if (type === "patient") {
-        // Generate a proper patient ID
-        const patientId = generatePatientId();
+        // Use wallet address as ID if available, otherwise generate a new ID
+        const patientId = userData.walletAddress
+          ? userData.walletAddress.toLowerCase()
+          : generatePatientId();
 
         // Create a complete patient object with required fields
         // Log the userData to see what's coming in
         console.log("userData received in AuthContext:", userData);
+
+        // Log the userData to debug
+        console.log("Creating patient with userData:", userData);
+
+        // Ensure age is properly set
+        const age = userData.age || "";
+        console.log("Age from userData:", age);
+
+        // Ensure profile image is properly set
+        let profileImage = userData.profileImage;
+        if (!profileImage || profileImage === "") {
+          profileImage = "/patients/placeholder.jpg";
+        }
+        console.log("Profile image:", profileImage);
 
         const newPatient: Patient = {
           id: patientId,
@@ -156,7 +172,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           vaccinations: [],
           weight: userData.weight || 0,
           height: userData.height || 0,
-          profileImage: userData.profileImage || "/placeholder.svg",
+          age: age, // Use the properly processed age
+          profileImage: profileImage, // Use the properly processed profile image
           createdAt: new Date().toISOString(),
           lastVisit: new Date().toISOString(),
           bloodPressureHistory: [
@@ -173,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           lowestBloodPressure: "120/80",
           appointments: [],
           recentAppointments: [],
+          walletAddress: userData.walletAddress || "",
         };
 
         // Log the patient data before adding to mockPatients
@@ -255,6 +273,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Make sure we have a name property
         if (type === "patient") {
           // For patients, create a proper Patient object
+          // Ensure age is properly set
+          const age = userData.age || "";
+          console.log("Age from wallet login userData:", age);
+
+          // Ensure profile image is properly set
+          let profileImage = userData.profileImage;
+          if (!profileImage || profileImage === "") {
+            profileImage = "/patients/placeholder.jpg";
+          }
+          console.log("Profile image from wallet login:", profileImage);
+
           const patientData: Patient = {
             id: walletAddress.toLowerCase(),
             name: userData.fullName || "Unknown Patient", // Use fullName from IPFS
@@ -276,7 +305,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             vaccinations: [],
             weight: userData.weight || 0,
             height: userData.height || 0,
-            profileImage: userData.profileImage || "/placeholder.svg",
+            age: age, // Use the properly processed age
+            profileImage: profileImage, // Use the properly processed profile image
             createdAt: userData.createdAt || new Date().toISOString(),
             lastVisit: new Date().toISOString(),
             bloodPressureHistory: [
@@ -371,6 +401,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             vaccinations: [],
             weight: 70,
             height: 170,
+            age: "30",
             profileImage: "/patients/placeholder.jpg",
             createdAt: new Date().toISOString(),
             lastVisit: new Date().toISOString(),
@@ -445,12 +476,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Clear user data from context
       setCurrentUser({ type: null, data: null });
 
-      // Clear all stored data
-      localStorage.clear(); // Clear all localStorage items
+      // Save important data we want to keep
+      const savedPatients = localStorage.getItem("savedPatients");
+
+      // Clear specific items instead of all localStorage
+      localStorage.removeItem("currentUser");
+      localStorage.removeItem("rememberedCredentials");
+      localStorage.removeItem("appointment-storage");
+      localStorage.removeItem("walletState");
+      localStorage.removeItem("doctorActiveTab");
       sessionStorage.clear(); // Clear all sessionStorage items
 
       // Set a flag to indicate the user just logged out
       localStorage.setItem("justLoggedOut", "true");
+
+      // Restore saved patients data
+      if (savedPatients) {
+        localStorage.setItem("savedPatients", savedPatients);
+      }
 
       // Clear appointments from the store
       const appointmentStore = useAppointmentStore.getState();
@@ -492,14 +535,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
 
-      // Clear mock data for the next session
-      if (typeof window !== "undefined") {
-        // Reset any mock data that might be stored in window object
-        (window as any).mockDataReset = true;
-
-        // Force a page reload to clear any in-memory state
-        window.location.href = "/"; // Redirect to root which is the login page
-      }
+      // Don't force a page reload, let the React Router handle navigation
+      // This prevents the app from completely reloading and losing state
+      // The navigation will be handled by the component that calls logout
 
       console.log("User logged out successfully and all data cleared");
       return true;

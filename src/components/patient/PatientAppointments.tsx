@@ -140,10 +140,13 @@ const PatientAppointments = () => {
                           Amount:
                         </span>
                         <span>
-                          ₹
-                          {selectedAppointment.amount?.toLocaleString(
-                            "en-IN"
-                          ) || "0"}
+                          {selectedAppointment.paymentType === "Cryptocurrency"
+                            ? "0.0025 ETH"
+                            : `₹${
+                                selectedAppointment.amount?.toLocaleString(
+                                  "en-IN"
+                                ) || "0"
+                              }`}
                         </span>
                       </div>
                       <div className="grid grid-cols-[120px,1fr] gap-2 items-center">
@@ -285,10 +288,13 @@ const PatientAppointments = () => {
                       <div className="space-y-2">
                         <h4 className="font-medium text-gray-600">Amount</h4>
                         <p className="bg-gray-50 p-2 rounded-md">
-                          ₹
-                          {selectedAppointment.amount?.toLocaleString(
-                            "en-IN"
-                          ) || "0"}
+                          {selectedAppointment.paymentType === "Cryptocurrency"
+                            ? "0.0025 ETH"
+                            : `₹${
+                                selectedAppointment.amount?.toLocaleString(
+                                  "en-IN"
+                                ) || "0"
+                              }`}
                         </p>
                       </div>
                       <div className="space-y-2">

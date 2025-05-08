@@ -34,16 +34,43 @@ const useAppointmentStore = create(
   persist<AppointmentStore>(
     (set, get) => ({
       appointments: [],
-      addAppointment: (appointment) =>
+      addAppointment: (appointment) => {
+        const newAppointment = {
+          ...appointment,
+          id: Math.random().toString(36).substring(2, 11),
+        };
+
         set((state) => ({
-          appointments: [
-            ...state.appointments,
-            {
-              ...appointment,
-              id: Math.random().toString(36).substr(2, 9),
-            },
-          ],
-        })),
+          appointments: [...state.appointments, newAppointment],
+        }));
+
+        // Dispatch an event to notify components that an appointment was added
+        try {
+          // Create and dispatch a custom event
+          const event = new CustomEvent("appointmentAdded", {
+            detail: { appointment: newAppointment },
+          });
+          window.dispatchEvent(event);
+
+          // Also update localStorage directly to trigger storage events
+          const currentStore = JSON.parse(
+            localStorage.getItem("appointment-storage") ||
+              '{"state":{"appointments":[]}}'
+          );
+          currentStore.state.appointments.push(newAppointment);
+          localStorage.setItem(
+            "appointment-storage",
+            JSON.stringify(currentStore)
+          );
+
+          console.log(
+            "Appointment added and event dispatched:",
+            newAppointment
+          );
+        } catch (error) {
+          console.error("Error dispatching appointment added event:", error);
+        }
+      },
       updateAppointmentStatus: (id, status) =>
         set((state) => ({
           appointments: state.appointments.map((app) =>

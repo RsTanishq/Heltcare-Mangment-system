@@ -48,20 +48,31 @@ const DoctorPatientsList: React.FC = () => {
         latestPatients.length,
         "patients"
       );
+
+      // Force a localStorage update to trigger other components to refresh
+      try {
+        localStorage.setItem("patientListRefreshed", new Date().toISOString());
+      } catch (error) {
+        console.error("Error updating localStorage:", error);
+      }
     };
 
     // Initial refresh
     refreshPatientList();
 
-    // Set up an interval to refresh the patient list every 2 seconds
+    // Set up an interval to refresh the patient list more frequently (every 1 second)
     // This ensures that new patients are displayed without requiring a page refresh
-    const intervalId = setInterval(refreshPatientList, 2000);
+    const intervalId = setInterval(refreshPatientList, 1000);
 
-    // Set up a storage event listener to update when localStorage changes
+    // Set up storage event listeners to update when relevant localStorage changes
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "savedPatients") {
+      if (
+        e.key === "savedPatients" ||
+        e.key === "appointment-storage" ||
+        e.key === "currentUser"
+      ) {
         console.log(
-          "savedPatients changed in localStorage, refreshing patient list"
+          `${e.key} changed in localStorage, refreshing patient list`
         );
         refreshPatientList();
       }
@@ -69,10 +80,19 @@ const DoctorPatientsList: React.FC = () => {
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Clean up the interval and event listener when the component unmounts
+    // Also refresh when appointments are added
+    const handleAppointmentAdded = () => {
+      console.log("Appointment added, refreshing patient list");
+      refreshPatientList();
+    };
+
+    window.addEventListener("appointmentAdded", handleAppointmentAdded);
+
+    // Clean up the interval and event listeners when the component unmounts
     return () => {
       clearInterval(intervalId);
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("appointmentAdded", handleAppointmentAdded);
     };
   }, []); // Empty dependency array to run only on mount
 
@@ -111,15 +131,32 @@ const DoctorPatientsList: React.FC = () => {
     }
   };
 
-  const calculateAge = (dateOfBirth: string) => {
-    const today = new Date();
-    const birthDate = new Date(dateOfBirth);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
+  const calculateAge = (dateOfBirth: string, ageString?: string) => {
+    // If age is provided directly as a string, use it
+    if (ageString && ageString.trim() !== "") {
+      return ageString;
     }
-    return age;
+
+    // Otherwise calculate from date of birth
+    try {
+      const today = new Date();
+      const birthDate = new Date(dateOfBirth);
+
+      // Check if date is valid
+      if (isNaN(birthDate.getTime())) {
+        return "Unknown";
+      }
+
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age.toString();
+    } catch (error) {
+      console.error("Error calculating age:", error);
+      return "Unknown";
+    }
   };
 
   return (
@@ -165,9 +202,18 @@ const DoctorPatientsList: React.FC = () => {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={patient.profileImage} />
+                          <AvatarImage
+                            src={
+                              patient.profileImage ||
+                              "/patients/placeholder.jpg"
+                            }
+                            onError={(e) => {
+                              // If image fails to load, set a fallback image
+                              e.currentTarget.src = "/patients/placeholder.jpg";
+                            }}
+                          />
                           <AvatarFallback>
-                            {patient.name.substring(0, 2)}
+                            {patient.name.substring(0, 2).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div>
@@ -178,7 +224,9 @@ const DoctorPatientsList: React.FC = () => {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{calculateAge(patient.dateOfBirth)}</TableCell>
+                    <TableCell>
+                      {calculateAge(patient.dateOfBirth, patient.age)}
+                    </TableCell>
                     <TableCell>{patient.gender}</TableCell>
                     <TableCell>
                       {patient.medicalHistory &&

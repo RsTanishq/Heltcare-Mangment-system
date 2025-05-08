@@ -98,10 +98,31 @@ const Doctors = () => {
   const handleCryptoPayment = async () => {
     setIsPaying(true);
     try {
-      // Use a real Ethereum address for receiving payments
-      const toAddress = "0x00000000219ab540356cBB839Cbe05303d7705Fa"; // Example: Ethereum Foundation address (replace with your own)
+      // Use the doctor's wallet address for receiving payments
+      // If selectedDoctor doesn't have a walletAddress, use a fallback address
+      const toAddress =
+        selectedDoctor?.walletAddress ||
+        "0x00000000219ab540356cBB839Cbe05303d7705Fa";
+
+      // Fixed amount for appointment payment
       const amount = "0.0025";
+
+      console.log("Sending payment to:", toAddress);
+      console.log("Amount:", amount, "ETH");
+
+      // Ensure MetaMask is connected
+      if (!account) {
+        throw new Error("MetaMask wallet not connected");
+      }
+
+      // Send the transaction with explicit gas settings to ensure it goes through
       const tx = await sendTransaction(toAddress, amount);
+      console.log("Transaction sent:", tx);
+
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      console.log("Transaction confirmed:", receipt);
+
       setTransactionHash(tx.hash);
       toast({
         title: "Payment Successful",
@@ -109,13 +130,16 @@ const Doctors = () => {
         variant: "default",
       });
     } catch (error) {
+      console.error("Payment error:", error);
       toast({
         title: "Payment Failed",
-        description: "There was an error processing your crypto payment.",
+        description:
+          "There was an error processing your crypto payment. Please check the console for details.",
         variant: "destructive",
       });
+    } finally {
+      setIsPaying(false);
     }
-    setIsPaying(false);
   };
 
   const handleBookAppointment = async () => {

@@ -18,6 +18,7 @@ interface FormData {
   password: string;
   confirmPassword: string;
   gender: "Male" | "Female" | "Other";
+  age: string;
   registrationNumber: string;
   specialization: string;
   yearsOfExperience: string;
@@ -41,6 +42,7 @@ const SignupPage = () => {
     password: "",
     confirmPassword: "",
     gender: "Male", // Default gender
+    age: "",
     registrationNumber: "",
     specialization: "",
     yearsOfExperience: "",
@@ -130,6 +132,7 @@ const SignupPage = () => {
           walletAddress: account || "",
           phoneNumber: formData.phoneNumber,
           gender: formData.gender, // Pass gender to blockchain service
+          age: formData.age, // Pass age to blockchain service
           profileImage: formData.profileImage || undefined,
         });
 
@@ -147,6 +150,7 @@ const SignupPage = () => {
             ? URL.createObjectURL(formData.profileImage)
             : "/patients/placeholder.jpg",
           gender: formData.gender, // Use selected gender
+          age: formData.age, // Add age
           dateOfBirth: new Date().toISOString().split("T")[0],
         };
 
@@ -349,6 +353,22 @@ const SignupPage = () => {
                     <Label htmlFor="other">Other</Label>
                   </div>
                 </RadioGroup>
+              </div>
+
+              <div>
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  required
+                  value={formData.age}
+                  onChange={(e) =>
+                    setFormData({ ...formData, age: e.target.value })
+                  }
+                  placeholder="Enter your age"
+                  min="1"
+                  max="120"
+                />
               </div>
 
               <div>

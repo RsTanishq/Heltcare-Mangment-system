@@ -56,6 +56,7 @@ export interface Patient {
   vaccinations: PatientVaccination[];
   weight: number; // in kg
   height: number; // in cm
+  age?: string; // Patient's age
   profileImage?: string; // URL or base64 string for the image
   createdAt: string;
   lastVisit?: string;
@@ -473,10 +474,15 @@ export const addNewPatient = (patient: Patient) => {
     // Update existing patient
     console.log(`Updating existing patient: ${patient.name} (${patient.id})`);
 
-    // Create a merged patient object
+    // Create a merged patient object that prioritizes new data
     const mergedPatient = {
+      // Start with the existing patient data as the base
+      ...mockPatients[existingIndex],
+
+      // Override with the new patient data
       ...patient,
-      // Preserve any appointments or medical history that might exist
+
+      // Keep specific fields that should be merged rather than replaced
       appointments: [
         ...(mockPatients[existingIndex].appointments || []),
         ...(patient.appointments || []),
